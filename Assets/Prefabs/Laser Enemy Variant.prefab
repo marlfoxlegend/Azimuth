@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &89590938590699030
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -6503569256640350578, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: target
+      value: 
+      objectReference: {fileID: 5747565771607193878, guid: 83e630486dd0e09429060ee1f101bc4c, type: 3}
+    - target: {fileID: -6503569256640350578, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: laserSpeed
+      value: 7.83
+      objectReference: {fileID: 0}
+    - target: {fileID: -6503569256640350578, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: shootsUpward
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3899918413027874738, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: damageAmount
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 3899918413027874738, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: damageTarget
+      value: 
+      objectReference: {fileID: 5747565771607193878, guid: 83e630486dd0e09429060ee1f101bc4c, type: 3}
+    - target: {fileID: 4672932890745410950, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_Mass
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857361, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857361, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857361, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857361, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857362, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_FlipY
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857362, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 59a0e711fad0d4f4681a4aefc0d2f550, type: 3}
+    - target: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_Name
+      value: Laser Enemy Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+      propertyPath: m_TagString
+      value: EnemyLaser
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
