@@ -1,107 +1,101 @@
+using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using Azimuth.Events;
 using UnityEngine;
 
 namespace Azimuth
 {
-	public class EnemySpawner : MonoBehaviour
-	{
-		[SerializeField] List<Wave> waves;
-		[SerializeField] int loopCount = 1;
+    public class EnemySpawner : MonoBehaviour, ISubscriber
+    {
+        [SerializeField] private List<Wave> _waves;
+        [SerializeField] [Range(0, 20)] private int _loopCount = 1;
 
-		Vector3[,] placements;
-		Transform spawnArea;
-		float startXPos;
+        private bool _allSpawnDestroyed = false;
+        private int _spawned = 0;
 
-		private void Awake()
-		{
-		}
+        private void OnEnable()
+        {
+            EventManager.Instance.Subscribe(GameEventType.PlayerDestroyed, this);
+            EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
+        }
 
-		private void Start()
-		{
-			_ = StartCoroutine(SpawnWaves());
-		}
+        private void OnDisable()
+        {
+            EventManager.Instance.RemoveAllSubscriber(this);
+        }
 
-		private IEnumerator CheckRemaining()
-		{
-			while (true)
-			{
-				if (transform.childCount == 0)
-				{
-					GameManagement.Instance.FinishLevel(GameManagement.CurrentState.Won);
-					yield break;
-				}
-				yield return new WaitForEndOfFrame();
-			}
-		}
+        private void Start()
+        {
+            _ = StartCoroutine(StartSpawning());
+        }
 
-		private IEnumerator SpawnWaves()
-		{
-			yield return new WaitUntil(() => GameManagement.Instance.PlayState == GameManagement.CurrentState.Playing);
-			for (int i = 0; i < loopCount; i++)
-			{
-				foreach (var wave in waves)
-				{
-					//yield return new WaitForSeconds(wave.DelayWaveStart);
-					yield return StartCoroutine(SpawnWaveEnemies(wave));
-					_ = StartCoroutine(CheckRemaining());
-					//yield return new WaitWhile(() => transform.childCount >= 1);
-				}
-				//yield return new WaitUntil(() => transform.childCount == 0);
-			}
-		}
+        private IEnumerator StartSpawning()
+        {
+            for (int i = 0; i < _loopCount; i++)
+            {
+                _allSpawnDestroyed = false;
+                yield return StartCoroutine(SpawnWaves());
+            }
+            yield return new WaitUntil(() => _allSpawnDestroyed);
+            Debug.Log($"{nameof(EnemySpawner)} has finished spawning and {nameof(_spawned)} == {_spawned}.", this);
+            EventManager.Instance.TriggerEvent(GameEventType.SpawningCompleted, this, (GameEventArgs)EventArgs.Empty);
+        }
 
-		private IEnumerator SpawnWaveEnemies(Wave wave)
-		{
-			var pathIndex = UnityEngine.Random.Range(0, wave.PathCreators.Count);
-			var pth = wave.PathCreators[pathIndex];
-			for (int i = 0; i < wave.NumberOfEnemies; i++)
-			{
-				var enemyPrefab = Instantiate(wave.EnemyInWave, pth.path.GetPoint(0), Quaternion.identity, transform);
-				var enemy = enemyPrefab.GetComponent<EnemyPathing>();
-				enemy.SetPath(pth.path);
-				yield return new WaitForSeconds(wave.TimeBetweenSpawn);
-			}
-		}
+        private IEnumerator SpawnWaves()
+        {
+            foreach (Wave wave in _waves)
+            {
+                _spawned += wave.NumberOfEnemies;
+                yield return StartCoroutine(SpawnWaveEnemies(wave));
+                yield return new WaitForSeconds(wave.TimeBetweenWaveSpawn);
+            }
+        }
 
-		//private void CreateRows()
-		//{
-		//	// Get ship width and height in world units
-		//	var ship = wave.enemyInRow[0].GetComponentInChildren<SpriteRenderer>().sprite;
-		//	var shipWidth = ship.rect.width / ship.pixelsPerUnit;
-		//	var shipHeight = ship.rect.height / ship.pixelsPerUnit;
+        private IEnumerator SpawnWaveEnemies(Wave wave)
+        {
+            PathCreation.VertexPath path = wave.PathCreators[UnityEngine.Random.Range(0, wave.PathCreators.Count)].path;
+            for (int i = 0; i < wave.NumberOfEnemies; i++)
+            {
+                var enemy = Instantiate(wave.EnemyInWave,
+                                        path.GetPoint(0),
+                                        Quaternion.identity,
+                                        transform);
+                enemy.GetComponent<EnemyPathing>().SetPath(path);
+                enemy.SetSprite(wave.Sprite);
+                yield return new WaitForSeconds(wave.TimeBetweenEnemySpawn);
+            }
+        }
 
-		//	// Each ship is placed 1 ship width/height plus padding
-		//	var shipOffset = new Vector3(shipWidth + wave.shipPadding, shipHeight + wave.spaceBetweenRows);
-		//	shipOffset.y *= -1;
+        private void StopSpawning()
+        {
+            StopAllCoroutines();
+        }
 
-		//	// Origin is not (0,0) so begin in negative X
-		//	startXPos = shipOffset.x * (wave.numberOfColumns - 1) / -2f;
+        private void SpawnKilled(Enemy enemy)
+        {
+            _spawned--;
+            Destroy(enemy.gameObject);
+            if (_spawned <= 0)
+            {
+                _allSpawnDestroyed = true;
+            }
+        }
 
-		//	for (int row = 0; row < wave.numberOfRows; row++)
-		//	{
-		//		for (int col = 0; col < wave.numberOfColumns; col++)
-		//		{
-		//			var x = startXPos + (shipOffset.x * col);
-		//			var y = shipOffset.y * (row + 1);
-		//			placements[row, col] = new Vector3(x, y);
-		//		}
-		//	}
-		//}
-
-		//private void InitializeWave()
-		//{
-		//	for (int row = 0; row < wave.numberOfRows; row++)
-		//	{
-		//		var enemy = wave.enemyInRow[row];
-		//		var numCols = placements.GetLength(1);
-		//		for (int col = 0; col < numCols; col++)
-		//		{
-		//			Vector3 position = placements[row, col];
-		//			var instEnemy = Instantiate(enemy, transform);
-		//			instEnemy.transform.localPosition = position;
-		//		}
-		//	}
-		//}
-	}
+        public void OnNotify(object sender, GameEventArgs args, GameEventType eventType)
+        {
+            switch (eventType)
+            {
+                case GameEventType.EnemyDestroyed:
+                    SpawnKilled((Enemy)sender);
+                    break;
+                case GameEventType.PlayerDestroyed:
+                    StopAllCoroutines();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }

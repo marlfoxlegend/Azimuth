@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9005855911c86ff48af5a026a1bb2896, type: 3}
+  m_Name: Wave-Weak-Many
+  m_EditorClassIdentifier: 
+  _enemyInWave: {fileID: 234288667866892435, guid: aeacc8b77281bd3499d096b11f14385b, type: 3}
+  _sprite: {fileID: 21300000, guid: c01cb7038d7fb5245ae35998bf876203, type: 3}
+  _numberOfEnemies: 18
+  _timeBetweenEnemySpawn: 0.61
+  _timeBetweenWaveSpawn: 4.09
+  _pathCreators:
+  - {fileID: 3630093921552019327, guid: a7a4993c002040a4ba3384361a353471, type: 3}
+  - {fileID: 2315384720908918595, guid: 1dcd00e705a79b74680aab3a77ef7b6a, type: 3}

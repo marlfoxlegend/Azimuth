@@ -1,181 +1,223 @@
-using System.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Azimuth.Events;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.Events;
 
 namespace Azimuth
 {
-	public class PlayerController : MonoBehaviour, IDestroyable
-	{
-		[System.Serializable]
-		public class PowerUpStat
-		{
-			public Stats modifiers;
-			public string powerUpId;
-			public float elapsedTime;
-			public float maxTime;
-		}
+    public class PlayerController : MonoBehaviour, IDestroyable, ISubscriber
+    {
+        [System.Serializable]
+        public class PowerUpStat
+        {
+            public Stats modifiers;
+            public string powerUpId;
+            public float elapsedTime;
+            public float maxTime;
+        }
 
-		[System.Serializable]
-		public struct Stats
-		{
-			public int health;
-			public int score;
-			public float shipSpeed;
-			public float laserCoolDown;
-			public int guns;
+        [System.Serializable]
+        public struct Stats
+        {
+            public int health;
+            public float shipSpeed;
+            public float laserCoolDown;
+            public int activeLaserGuns;
+            public int shieldDefense;
 
-			public static Stats operator +(Stats a, Stats b)
-			{
-				return new Stats
-				{
-					health = a.health + b.health,
-					score = a.score + b.score,
-					shipSpeed = a.shipSpeed + b.shipSpeed,
-					laserCoolDown = a.laserCoolDown + b.laserCoolDown,
-					guns = a.guns + b.guns
-				};
-			}
-		}
+            public static Stats operator +(Stats a, Stats b)
+            {
+                return new Stats
+                {
+                    health = a.health + b.health,
+                    shipSpeed = a.shipSpeed + b.shipSpeed,
+                    laserCoolDown = a.laserCoolDown + b.laserCoolDown,
+                    activeLaserGuns = a.activeLaserGuns + b.activeLaserGuns,
+                    shieldDefense = a.shieldDefense + b.shieldDefense
+                };
+            }
+        }
 
-		//[SerializeField] float movementSpeed = 10f;
-		//[SerializeField] GameObject thrusters;
-		//[SerializeField] float laserCoolDownPeriod = 1;
-		//[SerializeField] float fireReleaseTime = 0f;
+        private const string Horizontal = "Horizontal";
+        private const string Vertical = "Vertical";
+        private const string Fire = "Fire";
 
-		[Range(0f, 1f)] public float maxYBoundary;
-		[Min(0.01f)] public float rotateSpeed = 1f;
-		public Stats baseStats;
+        [SerializeField] private Stats _baseStats;
+        [SerializeField] private int _health = 100;
+        [SerializeField] private int _score = 0;
+        [SerializeField] [Range(0f, 1f)] private float _maxYBoundary;
 
-		Rigidbody2D rb;
-		SpriteRenderer spriteRenderer;
-		List<LaserShooter> shooters;
-		AzimuthControls controls;
-		List<PowerUpStat> powerUps = new List<PowerUpStat>();
-		Stats activeStats;
-		Vector2 maxBoundary;
-		Vector2 minBoundary;
-		Coroutine firingLasers = null;
+        [Header("Ship FX")]
+        [SerializeField] private AudioClip _playerExplosionClip;
+        [SerializeField] [Range(0f,1f)] private float _explosionVolume = 1f;
+        [SerializeField] private GameObject _explosionFx;
+        [SerializeField] [Range(1f, 10f)] private float _explosionDuration = 3f;
 
-		private void Awake()
-		{
-			rb = GetComponent<Rigidbody2D>();
-			spriteRenderer = GetComponent<SpriteRenderer>();
-			shooters = new List<LaserShooter>(GetComponentsInChildren<LaserShooter>());
-			controls = new AzimuthControls();
-			SetPlayerBoundaries();
-		}
 
-		private void OnEnable()
-		{
-			baseStats = GameManagement.Instance.baseStats;
-			controls.SpaceShooter.Fire.performed += OnFire;
-			controls.SpaceShooter.Fire.canceled += OnFireCeased;
-		}
+        [Tooltip("READ ONLY")] public Stats stats;
 
-		private void OnDisable()
-		{
-			SetPlayerControl(false);
-		}
+        private Rigidbody2D _rb;
+        private SpriteRenderer _spriteRenderer;
+        private List<LaserShooter> _shooters;
+        private List<PowerUpStat> _powerUps = new List<PowerUpStat>();
+        private Vector2 _maxBoundary;
+        private Vector2 _minBoundary;
+        private Coroutine _firingLasers = null;
 
-		private void FixedUpdate()
-		{
-			MovePlayer(controls.SpaceShooter.Move.ReadValue<Vector2>());
-		}
+        public Stats BaseStats => _baseStats;
 
-		private void OnTriggerEnter2D(Collider2D collision)
-		{
-			var dmg = collision.gameObject.GetComponent<Damager>();
-			if (dmg)
-			{
-				TakeDamage(dmg);
-			}
-		}
 
-		private IEnumerator FireLasers()
-		{
-			while (true)
-			{
-				foreach (var shooter in shooters)
-				{
-					if (shooter.gameObject.activeInHierarchy)
-					{
-						shooter.ShootLaser();
-					}
-				}
-				yield return new WaitForSeconds(GameManagement.Instance.baseStats.laserCoolDown);
-			}
-		}
+        private void Awake()
+        {
+            _rb = GetComponent<Rigidbody2D>();
+            _spriteRenderer = GetComponent<SpriteRenderer>();
+            _shooters = new List<LaserShooter>(GetComponentsInChildren<LaserShooter>());
+            SetPlayerBoundaries();
+        }
 
-		public void OnFire(InputAction.CallbackContext context) => firingLasers = StartCoroutine(FireLasers());
+        private void OnEnable()
+        {
+            stats = _baseStats;
+            EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
+            EventManager.Instance.Subscribe(GameEventType.LevelCompleted, this);
+        }
 
-		public void OnFireCeased(InputAction.CallbackContext context)
-		{
-			if (firingLasers != null)
-			{
-				StopCoroutine(firingLasers);
-			}
-		}
+        private void OnDisable()
+        {
+            SetPlayerControl(false);
+            _ = EventManager.Instance.RemoveAllSubscriber(this);
+        }
 
-		private void MovePlayer(Vector3 movement)
-		{
-			// ROTATE player
-			//var rot = transform.rotation.eulerAngles.z;
-			//rot += movement.x * rotateSpeed * Time.fixedDeltaTime;
-			//rb.MoveRotation(rot);
+        private void Update()
+        {
+            FireLaser(Input.GetButton(Fire));
+        }
 
-			// MOVE player
-			var pos = transform.position;
-			movement *= GameManagement.Instance.baseStats.shipSpeed * Time.fixedDeltaTime;
-			pos += movement;
-			//var velocity = new Vector3(0f, movement.y * gameManager.gameStats.shipSpeed * Time.fixedDeltaTime, 0f);
-			//pos += transform.rotation * velocity;
+        private void FixedUpdate()
+        {
+            MoveShip(GetMovement());
+        }
 
-			// Clamp movement to defined boundaries
-			pos.x = Mathf.Clamp(pos.x, minBoundary.x, maxBoundary.x);
-			pos.y = Mathf.Clamp(pos.y, minBoundary.y, maxBoundary.y);
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            var dmg = collision.gameObject.GetComponent<IDestroyer>();
+            if (dmg != null)
+            {
+                dmg.DamageTarget(this);
+            }
+        }
 
-			rb.MovePosition(pos);
-		}
+        private Vector3 GetMovement()
+        {
+            float x = Input.GetAxis(Horizontal);
+            float y = Input.GetAxis(Vertical);
+            return new Vector3(x, y, 0);
+        }
 
-		private void SetPlayerBoundaries()
-		{
-			// Boundaries are screen edge offset by player sprite in world units
-			var shipRect = spriteRenderer.sprite.rect;
-			var ppu = spriteRenderer.sprite.pixelsPerUnit;
-			var offset = new Vector3(shipRect.width, shipRect.height, 0f) / ppu / 2.0f;
+        private IEnumerator FiringLasers()
+        {
+            while (true)
+            {
+                for (var i = 0; i < stats.activeLaserGuns; i++)
+                {
+                    Debug.Log($"Firing from {_shooters[i].name}.", this);
+                    _shooters[i].ShootLaser();
+                }
+                yield return new WaitForSeconds(stats.laserCoolDown);
+            }
+        }
 
-			minBoundary = Camera.main.ViewportToWorldPoint(Vector2.zero) + offset;
-			maxBoundary = Camera.main.ViewportToWorldPoint(new Vector2(1f, maxYBoundary)) - offset;
-		}
+        private void SetPlayerBoundaries()
+        {
+            // Boundaries are screen edge offset by player sprite in world units
+            var shipRect = _spriteRenderer.sprite.rect;
+            var ppu = _spriteRenderer.sprite.pixelsPerUnit;
+            var offset = new Vector3(shipRect.width, shipRect.height, 0f) / ppu / 2.0f;
 
-		public void TakeDamage(Damager otherDamager)
-		{
-			GameManagement.Instance.baseStats.health -= otherDamager.GetDamageAmount();
-			if (GameManagement.Instance.baseStats.health <= 0)
-			{
-				Explode();
-			}
-		}
+            _minBoundary = Camera.main.ViewportToWorldPoint(Vector2.zero) + offset;
+            _maxBoundary = Camera.main.ViewportToWorldPoint(new Vector2(1f, _maxYBoundary)) - offset;
+        }
 
-		private void Explode()
-		{
-			gameObject.SetActive(false);
-			GameManagement.Instance.FinishLevel(GameManagement.CurrentState.Lost);
-		}
+        public void SetPlayerControl(bool allowPlayerControl = true)
+        {
+            _rb.simulated = allowPlayerControl;
+        }
 
-		public void SetPlayerControl(bool takesInput = true)
-		{
-			if (takesInput)
-			{
-				controls.SpaceShooter.Enable();
-			}
-			else
-			{
-				controls.SpaceShooter.Disable();
-			}
-		}
-	}
+        public void FireLaser(bool fireLaser = true)
+        {
+            if (fireLaser && _firingLasers == null)
+            {
+                _firingLasers = StartCoroutine(FiringLasers());
+            }
+            else if (!fireLaser && _firingLasers != null)
+            {
+                StopCoroutine(_firingLasers);
+            }
+        }
+
+        public void MoveShip(Vector3 movement)
+        {
+            var pos = transform.position;
+            pos += stats.shipSpeed * Time.fixedDeltaTime * movement;
+
+            // Clamp movement to defined boundaries
+            pos.x = Mathf.Clamp(pos.x, _minBoundary.x, _maxBoundary.x);
+            pos.y = Mathf.Clamp(pos.y, _minBoundary.y, _maxBoundary.y);
+            _rb.MovePosition(pos);
+        }
+
+        public void TakeDamage(int damageAmount)
+        {
+            int totalDamage = damageAmount - stats.shieldDefense;
+            _health = Mathf.Clamp(_health - totalDamage, 0, int.MaxValue);
+            if (_health <= 0)
+            {
+                Destroyed();
+            }
+        }
+
+        public void Destroyed()
+        {
+            gameObject.SetActive(false);
+            if (_explosionFx != null)
+            {
+                GameObject explosion = Instantiate(_explosionFx, transform.position, Quaternion.identity);
+                AudioSource.PlayClipAtPoint(_playerExplosionClip,
+                                            Camera.main.transform.position,
+                                            _explosionVolume);
+                Destroy(explosion, _explosionDuration);
+            }
+            PlayerDestroyedEventArgs destroyedEventArgs = new PlayerDestroyedEventArgs(_score, _health);
+            EventManager.Instance.TriggerEvent(GameEventType.PlayerDestroyed, this, destroyedEventArgs);
+            Destroy(gameObject);
+        }
+
+        public int GetHealth() => _health;
+
+        public void OnNotify(object sender, GameEventArgs args, GameEventType eventType)
+        {
+            switch (eventType)
+            {
+                case GameEventType.LevelCompleted:
+                    if (sender is GameManager game)
+                    {
+                        game.SetScore(_score);
+                        SetPlayerControl(false);
+                    }
+                    break;
+                case GameEventType.EnemyDestroyed:
+                    if (args is EnemyDestroyedEventArgs destroyedEventArgs)
+                    {
+                        if (destroyedEventArgs.DestroyedByPlayer)
+                        {
+                            _score += destroyedEventArgs.Points;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }

@@ -4,63 +4,121 @@ using UnityEngine;
 
 namespace Azimuth
 {
-	public class Enemy : MonoBehaviour, IDestroyable
-	{
-		[SerializeField] float maxFireDelay = 5f;
-		[SerializeField] int rewardPoints = 50;
-		[SerializeField] LaserShooter laserGun;
-		[SerializeField] int health = 100;
+    public class Enemy : MonoBehaviour, IDestroyer, IDestroyable
+    {
+        [SerializeField] [Min(0f)] private int _rewardPoints = 50;
+        [SerializeField] [Min(0f)] private int _health = 100;
+        [SerializeField] [Min(0f)] private int _contactDamage = 100;
+        
+        [Header("Ship")]
+        [SerializeField] private LaserShooter _laserGun;
+        [SerializeField] [Min(0f)] private float _maxFireDelay = 5f;
+        [SerializeField] private bool _destroyOnImpact = true;
 
-		private void OnEnable()
-		{
-			_ = StartCoroutine(RandomFireLaser());
-		}
+        [Header("Ship FX")]
+        [SerializeField] private GameObject _explosionFx;
+        [SerializeField] private AudioClip _explosionClip;
+        [SerializeField] [Range(0f, 1f)] private float _explosionVolume = 1f;
+        [SerializeField] [Range(1f, 10f)] private float _explosionDuration = 3f;
 
-		private void Update()
-		{
-			if (GameManagement.Instance.PlayState != GameManagement.CurrentState.Playing)
-			{
-				CeaseFire();
-			}
-		}
+        private Coroutine _firing;
 
-		private void OnTriggerEnter2D(Collider2D collision)
-		{
-			var dmg = collision.gameObject.GetComponent<Damager>();
-			if (dmg)
-			{
-				TakeDamage(dmg);
-			}
-		}
 
-		private IEnumerator RandomFireLaser()
-		{
-			do
-			{
-				var wait = UnityEngine.Random.Range(0f, maxFireDelay);
-				yield return new WaitForSeconds(wait);
-				if (GetComponent<EnemyPathing>().FacingPlayer)
-				{
-					laserGun.ShootLaser();
-				}
-			} while (GameManagement.Instance.PlayState == GameManagement.CurrentState.Playing);
-		}
+        private void OnBecameVisible()
+        {
+            if (_firing == null)
+            {
+                _firing = StartCoroutine(RandomFireLaser());
+            }
+        }
 
-		private void Explode()
-		{
-			Destroy(gameObject);
-		}
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            var dmg = collision.gameObject.GetComponent<IDestroyer>();
+            if (dmg != null)
+            {
+                dmg.DamageTarget(this);
+            }
+        }
 
-		private void CeaseFire() => StopCoroutine(nameof(RandomFireLaser));
+        private void OnBecameInvisible()
+        {
+            if (_firing != null)
+            {
+                StopCoroutine(_firing);
+            }
+        }
 
-		public void TakeDamage(Damager otherDamager)
-		{
-			health -= otherDamager.GetDamageAmount();
-			if (health <= 0)
-			{
-				GameManagement.Instance.baseStats.score += rewardPoints;
-				Explode();
-			}
-		}
-	}
+        private void OnDestroy()
+        {
+        }
+
+        private IEnumerator RandomFireLaser()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(Random.Range(0f, _maxFireDelay));
+                _laserGun.ShootLaser();
+            }
+        }
+
+        public void CeaseFire() => StopCoroutine(_firing);
+
+        public void TakeDamage(int damageAmount)
+        {
+            _health -= damageAmount;
+            if (_health <= 0)
+            {
+                // TODO: add to game session's score
+                Destroyed();
+            }
+        }
+
+        public int GetDamageAmount() => _contactDamage;
+
+        public void DamageTarget(IDestroyable target)
+        {
+            target.TakeDamage(_contactDamage);
+            if (_destroyOnImpact)
+            {
+                Destroyed();
+            }
+        }
+
+        public int GetHealth() => _health;
+
+        public void Destroyed()
+        {
+            gameObject.SetActive(false);
+            if (_explosionFx)
+            {
+                var explosion = Instantiate(_explosionFx, transform.position, Quaternion.identity);
+                AudioSource.PlayClipAtPoint(_explosionClip,
+                                            Camera.main.transform.position,
+                                            _explosionVolume);
+                Destroy(explosion, _explosionDuration);
+            }
+
+            var destroyedEventArgs = new Events.EnemyDestroyedEventArgs(_rewardPoints, true);
+            EventManager.Instance.TriggerEvent(GameEventType.EnemyDestroyed, this, destroyedEventArgs);
+        }
+
+        public void SetSprite(Sprite sprite)
+        {
+            SpriteRenderer sp = GetComponent<SpriteRenderer>();
+            PolygonCollider2D collider2D = GetComponent<PolygonCollider2D>();
+            
+            sp.sprite = sprite;
+            List<Vector2> shapes = new List<Vector2>();
+            if (sp.sprite.GetPhysicsShape(0, shapes) > 0)
+            {
+                collider2D.points = shapes.ToArray();
+            }
+        }
+
+        private void RewardPoints()
+        {
+            GameManager.Instance.SetScore(_rewardPoints);
+        }
+    }
 }

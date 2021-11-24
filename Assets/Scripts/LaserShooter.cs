@@ -4,40 +4,40 @@ using UnityEngine;
 
 namespace Azimuth
 {
-	public class LaserShooter : MonoBehaviour
-	{
-		[SerializeField] string pooledObjectName = "Laser";
-		[SerializeField] AudioClip[] shootAudioClips;
-		[Range(0f, 1f)] [SerializeField] float volumeShootAudio = 1f;
+    public class LaserShooter : MonoBehaviour
+    {
+        [SerializeField] private string _pooledObjectName = "Laser";
+        [SerializeField] private AudioClip[] _laserClips;
+        [SerializeField] [Range(0f, 1f)] private float _laserVolume = 1f;
 
-		ObjectPooler pooler;
+        private ObjectPooler _pooler;
 
-		private void OnEnable()
-		{
-			pooler = FindObjectOfType<ObjectPooler>();
-		}
 
-		public void ShootLaser()
-		{
-			var laser = pooler.GetObjectFromPool(pooledObjectName);
-			if (laser)
-			{
-				laser.transform.rotation = transform.rotation;
-				laser.transform.position = transform.position;
+        private void OnEnable()
+        {
+            _pooler = FindObjectOfType<ObjectPooler>();
+        }
 
-				laser.SetActive(true);
+        public void ShootLaser()
+        {
+            var laser = _pooler.GetObjectFromPool(_pooledObjectName);
+            if (!laser)
+            {
+                Debug.LogWarning($"No object with name {_pooledObjectName} found in {nameof(ObjectPooler)}.", gameObject);
+                return;
+            }
+            laser.transform.SetPositionAndRotation(transform.position, transform.rotation);
+            laser.SetActive(true);
+            PlayLaserAudio();
+        }
 
-				PlayLaserSound();
-			}
-		}
-
-		private void PlayLaserSound()
-		{
-			var index = UnityEngine.Random.Range(0, shootAudioClips.Length);
-			AudioSource.PlayClipAtPoint(
-				shootAudioClips[index],
-				Camera.main.transform.position,
-				volumeShootAudio);
-		}
-	}
+        private void PlayLaserAudio()
+        {
+            int index = Random.Range(0, _laserClips.Length);
+            Vector3 position = new Vector3(transform.position.x,
+                                           transform.position.y,
+                                           Camera.main.transform.position.z);
+            AudioSource.PlayClipAtPoint(_laserClips[index], position, _laserVolume);
+        }
+    }
 }
