@@ -7,6 +7,7 @@ namespace Azimuth.Events
 {
     public class GameEventArgs : EventArgs
     {
+        public static new GameEventArgs Empty => EventArgs.Empty as GameEventArgs;
     }
     public class PlayerDestroyedEventArgs : GameEventArgs
     {

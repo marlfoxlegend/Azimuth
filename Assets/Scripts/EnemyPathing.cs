@@ -31,7 +31,7 @@ namespace Azimuth
             {
                 gameObject.SetActive(false);
                 EventManager.Instance.TriggerEvent(GameEventType.EnemyDestroyed,
-                                                   this,
+                                                   _enemy,
                                                    new Events.EnemyDestroyedEventArgs(0, false));
             }
         }

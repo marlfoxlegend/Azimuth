@@ -86,12 +86,16 @@ namespace Azimuth
         private void OnDisable()
         {
             SetPlayerControl(false);
-            _ = EventManager.Instance.RemoveAllSubscriber(this);
+            _ = EventManager.Instance.RemoveSubscriberAll(this);
         }
 
         private void Update()
         {
-            FireLaser(Input.GetButton(Fire));
+            if (Input.GetButtonDown(Fire))
+            {
+                Debug.Log($"Fire button held: {Input.GetButtonDown(Fire)}");
+                FireLaser();
+            }
         }
 
         private void FixedUpdate()
@@ -144,13 +148,13 @@ namespace Azimuth
             _rb.simulated = allowPlayerControl;
         }
 
-        public void FireLaser(bool fireLaser = true)
+        public void FireLaser()
         {
-            if (fireLaser && _firingLasers == null)
+            if (_firingLasers == null)
             {
                 _firingLasers = StartCoroutine(FiringLasers());
             }
-            else if (!fireLaser && _firingLasers != null)
+            else
             {
                 StopCoroutine(_firingLasers);
             }
@@ -188,36 +192,39 @@ namespace Azimuth
                                             _explosionVolume);
                 Destroy(explosion, _explosionDuration);
             }
-            PlayerDestroyedEventArgs destroyedEventArgs = new PlayerDestroyedEventArgs(_score, _health);
-            EventManager.Instance.TriggerEvent(GameEventType.PlayerDestroyed, this, destroyedEventArgs);
+            EventManager.Instance.TriggerEvent(GameEventType.PlayerDestroyed,
+                                               this,
+                                               new PlayerDestroyedEventArgs(_score, _health));
             Destroy(gameObject);
         }
 
         public int GetHealth() => _health;
 
-        public void OnNotify(object sender, GameEventArgs args, GameEventType eventType)
+        public void OnNotify(GameEventType eventType, object sender, GameEventArgs args)
         {
-            switch (eventType)
+            if (eventType == GameEventType.EnemyDestroyed)
             {
-                case GameEventType.LevelCompleted:
-                    if (sender is GameManager game)
-                    {
-                        game.SetScore(_score);
-                        SetPlayerControl(false);
-                    }
-                    break;
-                case GameEventType.EnemyDestroyed:
-                    if (args is EnemyDestroyedEventArgs destroyedEventArgs)
-                    {
-                        if (destroyedEventArgs.DestroyedByPlayer)
-                        {
-                            _score += destroyedEventArgs.Points;
-                        }
-                    }
-                    break;
-                default:
-                    break;
+                OnNotifyEnemyDestroyed(sender, args as EnemyDestroyedEventArgs);
+                return;
             }
+            if (eventType== GameEventType.LevelCompleted)
+            {
+                OnNotifyLevelCompleted(sender, args);
+                return;
+            }
+        }
+
+        public void OnNotifyEnemyDestroyed(object sender, EnemyDestroyedEventArgs destroyedEventArgs)
+        {
+            if (destroyedEventArgs.DestroyedByPlayer)
+            {
+                _score += destroyedEventArgs.Points;
+            }
+        }
+
+        public void OnNotifyLevelCompleted(object sender, GameEventArgs gameEventArgs)
+        {
+            SetPlayerControl(false);
         }
     }
 }

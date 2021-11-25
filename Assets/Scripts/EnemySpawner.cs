@@ -23,7 +23,7 @@ namespace Azimuth
 
         private void OnDisable()
         {
-            EventManager.Instance.RemoveAllSubscriber(this);
+            EventManager.Instance.RemoveSubscriberAll(this);
         }
 
         private void Start()
@@ -39,8 +39,6 @@ namespace Azimuth
                 yield return StartCoroutine(SpawnWaves());
             }
             yield return new WaitUntil(() => _allSpawnDestroyed);
-            Debug.Log($"{nameof(EnemySpawner)} has finished spawning and {nameof(_spawned)} == {_spawned}.", this);
-            EventManager.Instance.TriggerEvent(GameEventType.SpawningCompleted, this, (GameEventArgs)EventArgs.Empty);
         }
 
         private IEnumerator SpawnWaves()
@@ -70,7 +68,10 @@ namespace Azimuth
 
         private void StopSpawning()
         {
+            Debug.Log($"{nameof(EnemySpawner)} has finished spawning and {nameof(_spawned)} == {_spawned}.", this);
+
             StopAllCoroutines();
+            EventManager.Instance.TriggerEvent(GameEventType.SpawningCompleted, this, GameEventArgs.Empty);
         }
 
         private void SpawnKilled(Enemy enemy)
@@ -83,7 +84,7 @@ namespace Azimuth
             }
         }
 
-        public void OnNotify(object sender, GameEventArgs args, GameEventType eventType)
+        public void OnNotify(GameEventType eventType, object sender, GameEventArgs args)
         {
             switch (eventType)
             {

@@ -8,10 +8,11 @@ namespace Azimuth
 {
     public class EventManager : MonoBehaviour
     {
-        public delegate void GameEventHandler(object sender, GameEventArgs args, GameEventType eventType);
+        public delegate void GameEventHandler(object sender, GameEventArgs args);
 
         private static EventManager s_eventManager;
         private static Dictionary<GameEventType, List<ISubscriber>> s_events;
+        private static Dictionary<GameEventType, List<GameEventHandler>> s_handlers;
         public static EventManager Instance
         {
             get
@@ -35,17 +36,13 @@ namespace Azimuth
 
         private void Init()
         {
-            //if (s_publishers == null)
-            //{
-            //    s_publishers = new List<IObservable<MonoBehaviour>>();
-            //}
-            //if (s_observers == null)
-            //{
-            //    s_observers = new HashSet<IObserver<GameEventArgs>>();
-            //}
             if (s_events == null)
             {
                 s_events = new Dictionary<GameEventType, List<ISubscriber>>();
+            }
+            if (s_handlers == null)
+            {
+                s_handlers = new Dictionary<GameEventType, List<GameEventHandler>>();
             }
         }
 
@@ -56,8 +53,7 @@ namespace Azimuth
             {
                 foreach (ISubscriber subscriber in s_events[gameEventType])
                 {
-                    Debug.Log($"Notifying {((MonoBehaviour)subscriber).name} about {gameEventType}.");
-                    subscriber.OnNotify(sender, args, gameEventType);
+                    subscriber.OnNotify(gameEventType, sender, args);
                 }
             }
         }
@@ -87,7 +83,7 @@ namespace Azimuth
             return removed;
         }
 
-        public bool RemoveAllSubscriber(ISubscriber subscriber)
+        public bool RemoveSubscriberAll(ISubscriber subscriber)
         {
             Debug.Log($"{((MonoBehaviour)subscriber).name} attempting to unsubscribe from all events.");
             
@@ -115,6 +111,6 @@ namespace Azimuth
 
     public interface ISubscriber
     {
-        public void OnNotify(object sender, GameEventArgs args, GameEventType eventType);
+        public void OnNotify(GameEventType eventType, object sender, GameEventArgs args);
     }
 }
