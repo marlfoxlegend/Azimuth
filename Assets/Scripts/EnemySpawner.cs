@@ -17,13 +17,17 @@ namespace Azimuth
 
         private void OnEnable()
         {
-            EventManager.Instance.Subscribe(GameEventType.PlayerDestroyed, this);
-            EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
+            //EventManager.Instance.Subscribe(GameEventType.PlayerDestroyed, this);
+            //EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
+            EventManager.PlayerEventHandler += OnNotify;
+            EventManager.EnemyDestroyedHandler += OnNotify;
         }
 
         private void OnDisable()
         {
-            EventManager.Instance.RemoveSubscriberAll(this);
+            EventManager.PlayerEventHandler -= OnNotify;
+            EventManager.EnemyDestroyedHandler -= OnNotify;
+            //EventManager.Instance.RemoveSubscriberAll(this);
         }
 
         private void Start()
@@ -71,7 +75,7 @@ namespace Azimuth
             Debug.Log($"{nameof(EnemySpawner)} has finished spawning and {nameof(_spawned)} == {_spawned}.", this);
 
             StopAllCoroutines();
-            EventManager.Instance.TriggerEvent(GameEventType.SpawningCompleted, this, GameEventArgs.Empty);
+            EventManager.Instance.TriggerEvent(this, new LevelCompletedGameEvent());
         }
 
         private void SpawnKilled(Enemy enemy)
@@ -97,6 +101,20 @@ namespace Azimuth
                 default:
                     break;
             }
+        }
+
+        public void OnNotify(object sender, PlayerGameEvent playerDestroyed)
+        {
+            Debug.Log($"{nameof(EnemySpawner)} notified about {playerDestroyed}");
+            if (playerDestroyed.PlayerDestroyed)
+            {
+                StopSpawning();
+            }
+        }
+
+        public void OnNotify(object sender, EnemyDestroyedGameEvent enemyDestroyed)
+        {
+            Debug.Log($"{nameof(EnemySpawner)} notified about {enemyDestroyed}");
         }
     }
 }

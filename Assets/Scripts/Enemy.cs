@@ -99,8 +99,8 @@ namespace Azimuth
                 Destroy(explosion, _explosionDuration);
             }
 
-            var destroyedEventArgs = new Events.EnemyDestroyedEventArgs(_rewardPoints, true);
-            EventManager.Instance.TriggerEvent(GameEventType.EnemyDestroyed, this, destroyedEventArgs);
+            var destroyedEventArgs = new Events.EnemyDestroyedGameEvent(_rewardPoints);
+            EventManager.Instance.TriggerEvent(this, destroyedEventArgs);
         }
 
         public void SetSprite(Sprite sprite)

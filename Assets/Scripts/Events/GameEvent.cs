@@ -5,6 +5,54 @@ using UnityEngine;
 
 namespace Azimuth.Events
 {
+    public abstract class GameEvent
+    {
+    }
+
+    public class LevelCompletedGameEvent
+    {
+        protected Action finishTask;
+        public Action FinishTask
+        {
+            get => finishTask;
+            set
+            {
+                if (finishTask == null)
+                {
+                    finishTask = value;
+                }
+                else
+                {
+                    finishTask += value;
+                }
+            }
+        }
+    }
+
+    public class PlayerGameEvent
+    {
+        public int PlayerScore { get; }
+        public int PlayerHealth { get; }
+        public bool PlayerDestroyed { get; }
+
+        public PlayerGameEvent(int playerScore, int playerHealth, bool playerDestroyed)
+        {
+            PlayerScore = playerScore;
+            PlayerHealth = playerHealth;
+            PlayerDestroyed = playerDestroyed;
+        }
+    }
+
+    public struct EnemyDestroyedGameEvent
+    {
+        public int Points { get; }
+
+        public EnemyDestroyedGameEvent(int points): this()
+        {
+            Points = points;
+        }
+    }
+
     public class GameEventArgs : EventArgs
     {
         public static new GameEventArgs Empty => EventArgs.Empty as GameEventArgs;

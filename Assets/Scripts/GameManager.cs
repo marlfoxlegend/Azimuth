@@ -64,11 +64,13 @@ namespace Azimuth
         private void OnEnable()
         {
             SceneManager.sceneLoaded += NewLevelLoaded;
+            EventManager.LevelCompletedHandler += FinishLevel;
             _maxHealth = FindObjectOfType<PlayerController>().BaseStats.health;
         }
 
         private void OnDisable()
         {
+            EventManager.LevelCompletedHandler -= FinishLevel;
             SceneManager.sceneLoaded -= NewLevelLoaded;
         }
 
@@ -152,8 +154,17 @@ namespace Azimuth
             PlayState = GameState.Loading;
         }
 
-        private void FinishLevel(GameState endState)
+        private void FinishLevel(object sender, Events.LevelCompletedGameEvent levelCompleted)
         {
+            PlayState = GameState.Unloading;
+            if (sender is PlayerController player)
+            {
+                LevelWon();
+            }
+            else
+            {
+                LevelLost();
+            }
         }
 
         public void LevelWon()
@@ -168,19 +179,17 @@ namespace Azimuth
 
         private IEnumerator GameOver()
         {
-            yield break;
-            //Coroutine co = StartCoroutine(FadeOutOfLevel());
-            //yield return new WaitUntil(() => co == null || PlayState == GameState.Loading);
-            //SceneManager.LoadScene(SceneManager.sceneCountInBuildSettings - 1);
+            yield return StartCoroutine(FadeOutOfLevel());
+            yield return new WaitUntil(() => PlayState == GameState.Loading);
+            SceneManager.LoadScene(SceneManager.sceneCountInBuildSettings - 1);
         }
 
         private IEnumerator BeginNextLevel()
         {
-            yield break;
-            //yield return StartCoroutine(FadeOutOfLevel());
-            //yield return new WaitUntil(() => PlayState == GameState.Loading);
-            //var index = SceneManager.GetActiveScene().buildIndex;
-            //SceneManager.LoadScene(index);
+            yield return StartCoroutine(FadeOutOfLevel());
+            yield return new WaitUntil(() => PlayState == GameState.Loading);
+            var index = SceneManager.GetActiveScene().buildIndex;
+            SceneManager.LoadScene(index);
         }
 
         public void SetScore(int amount)

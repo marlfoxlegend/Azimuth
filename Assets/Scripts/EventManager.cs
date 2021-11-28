@@ -8,11 +8,15 @@ namespace Azimuth
 {
     public class EventManager : MonoBehaviour
     {
-        public delegate void GameEventHandler(object sender, GameEventArgs args);
+        public delegate void HandleGameEvent<in TGameEvent>(TGameEvent gameEvent);
+
+        public static event EventHandler<PlayerGameEvent> PlayerEventHandler;
+        public static event EventHandler<LevelCompletedGameEvent> LevelCompletedHandler;
+        public static event EventHandler<EnemyDestroyedGameEvent> EnemyDestroyedHandler;
 
         private static EventManager s_eventManager;
         private static Dictionary<GameEventType, List<ISubscriber>> s_events;
-        private static Dictionary<GameEventType, List<GameEventHandler>> s_handlers;
+
         public static EventManager Instance
         {
             get
@@ -40,22 +44,22 @@ namespace Azimuth
             {
                 s_events = new Dictionary<GameEventType, List<ISubscriber>>();
             }
-            if (s_handlers == null)
-            {
-                s_handlers = new Dictionary<GameEventType, List<GameEventHandler>>();
-            }
         }
 
-        public void TriggerEvent(GameEventType gameEventType, object sender, GameEventArgs args)
+        public void TriggerEvent(object sender, PlayerGameEvent gameEvent)
         {
-            Debug.Log($"{((MonoBehaviour)sender).name} triggering {gameEventType}.");
-            if (s_events.ContainsKey(gameEventType))
-            {
-                foreach (ISubscriber subscriber in s_events[gameEventType])
-                {
-                    subscriber.OnNotify(gameEventType, sender, args);
-                }
-            }
+            Debug.Log($"Triggering {nameof(PlayerGameEvent)}.");
+            PlayerEventHandler?.Invoke(sender, gameEvent);
+        }
+        public void TriggerEvent(object sender, EnemyDestroyedGameEvent gameEvent)
+        {
+            Debug.Log($"Triggering {nameof(EnemyDestroyedGameEvent)}.");
+            EnemyDestroyedHandler?.Invoke(sender, gameEvent);
+        }
+        public void TriggerEvent(object sender, LevelCompletedGameEvent gameEvent)
+        {
+            Debug.Log($"Triggering {nameof(LevelCompletedHandler)}.");
+            LevelCompletedHandler?.Invoke(sender, gameEvent);
         }
 
         public void Subscribe(GameEventType gameEventType, ISubscriber subscriber)

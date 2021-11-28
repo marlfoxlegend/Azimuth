@@ -30,9 +30,8 @@ namespace Azimuth
             if (transform.position == _vertexPath.GetPoint(_vertexPath.NumPoints - 1))
             {
                 gameObject.SetActive(false);
-                EventManager.Instance.TriggerEvent(GameEventType.EnemyDestroyed,
-                                                   _enemy,
-                                                   new Events.EnemyDestroyedEventArgs(0, false));
+                EventManager.Instance.TriggerEvent(_enemy,
+                                                   new Events.EnemyDestroyedGameEvent(0));
             }
         }
 
