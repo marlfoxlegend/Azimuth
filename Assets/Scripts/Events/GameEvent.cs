@@ -5,10 +5,9 @@ using UnityEngine;
 
 namespace Azimuth.Events
 {
-    public abstract class GameEvent
+    public class GameEvent
     {
     }
-
     public class LevelCompletedGameEvent
     {
         protected Action finishTask;
@@ -29,13 +28,13 @@ namespace Azimuth.Events
         }
     }
 
-    public class PlayerGameEvent
+    public struct PlayerGameEvent
     {
         public int PlayerScore { get; }
         public int PlayerHealth { get; }
         public bool PlayerDestroyed { get; }
 
-        public PlayerGameEvent(int playerScore, int playerHealth, bool playerDestroyed)
+        public PlayerGameEvent(int playerScore, int playerHealth, bool playerDestroyed) : this()
         {
             PlayerScore = playerScore;
             PlayerHealth = playerHealth;

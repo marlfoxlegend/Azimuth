@@ -13,6 +13,7 @@ namespace Azimuth
         public static event EventHandler<PlayerGameEvent> PlayerEventHandler;
         public static event EventHandler<LevelCompletedGameEvent> LevelCompletedHandler;
         public static event EventHandler<EnemyDestroyedGameEvent> EnemyDestroyedHandler;
+        public static event EventHandler<GameEvent> AllEnemiesCleared;
 
         private static EventManager s_eventManager;
         private static Dictionary<GameEventType, List<ISubscriber>> s_events;

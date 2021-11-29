@@ -12,13 +12,12 @@ namespace Azimuth
         [SerializeField] private List<Wave> _waves;
         [SerializeField] [Range(0, 20)] private int _loopCount = 1;
 
-        private bool _allSpawnDestroyed = false;
-        private int _spawned = 0;
+        private bool _waveCompleted = false;
+        private bool _spawningCompleted;
+        private int _spawns;
 
         private void OnEnable()
         {
-            //EventManager.Instance.Subscribe(GameEventType.PlayerDestroyed, this);
-            //EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
             EventManager.PlayerEventHandler += OnNotify;
             EventManager.EnemyDestroyedHandler += OnNotify;
         }
@@ -27,11 +26,11 @@ namespace Azimuth
         {
             EventManager.PlayerEventHandler -= OnNotify;
             EventManager.EnemyDestroyedHandler -= OnNotify;
-            //EventManager.Instance.RemoveSubscriberAll(this);
         }
 
         private void Start()
         {
+            _spawns = _waves.Sum(w => w.NumberOfEnemies * _loopCount);
             _ = StartCoroutine(StartSpawning());
         }
 
@@ -39,19 +38,18 @@ namespace Azimuth
         {
             for (int i = 0; i < _loopCount; i++)
             {
-                _allSpawnDestroyed = false;
                 yield return StartCoroutine(SpawnWaves());
             }
-            yield return new WaitUntil(() => _allSpawnDestroyed);
+            _spawningCompleted = true;
         }
 
         private IEnumerator SpawnWaves()
         {
             foreach (Wave wave in _waves)
             {
-                _spawned += wave.NumberOfEnemies;
-                yield return StartCoroutine(SpawnWaveEnemies(wave));
+                _waveCompleted = false;
                 yield return new WaitForSeconds(wave.TimeBetweenWaveSpawn);
+                yield return StartCoroutine(SpawnWaveEnemies(wave));
             }
         }
 
@@ -68,23 +66,22 @@ namespace Azimuth
                 enemy.SetSprite(wave.Sprite);
                 yield return new WaitForSeconds(wave.TimeBetweenEnemySpawn);
             }
+            _waveCompleted = true;
         }
 
         private void StopSpawning()
         {
-            Debug.Log($"{nameof(EnemySpawner)} has finished spawning and {nameof(_spawned)} == {_spawned}.", this);
+            Debug.Log($"{nameof(EnemySpawner)} has stopped spawning.", this);
 
             StopAllCoroutines();
-            EventManager.Instance.TriggerEvent(this, new LevelCompletedGameEvent());
         }
 
         private void SpawnKilled(Enemy enemy)
         {
-            _spawned--;
             Destroy(enemy.gameObject);
-            if (_spawned <= 0)
+            if (transform.childCount == 0)
             {
-                _allSpawnDestroyed = true;
+                _waveCompleted = true;
             }
         }
 
