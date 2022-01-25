@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Azimuth
 {
-    public class PlayerController : MonoBehaviour, IDestroyable, ISubscriber
+    public class PlayerController : MonoBehaviour, IDestroyable
     {
         [System.Serializable]
         public class PowerUpStat
@@ -79,18 +79,11 @@ namespace Azimuth
         private void OnEnable()
         {
             stats = _baseStats;
-            EventManager.EnemyDestroyedHandler += OnNotify;
-            EventManager.LevelCompletedHandler += OnNotify;
-            //EventManager.Instance.Subscribe(GameEventType.EnemyDestroyed, this);
-            //EventManager.Instance.Subscribe(GameEventType.LevelCompleted, this);
         }
 
         private void OnDisable()
         {
             SetPlayerControl(false);
-            EventManager.EnemyDestroyedHandler -= OnNotify;
-            EventManager.LevelCompletedHandler -= OnNotify;
-            //_ = EventManager.Instance.RemoveSubscriberAll(this);
         }
 
         private void Update()

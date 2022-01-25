@@ -66,7 +66,15 @@ namespace Azimuth.Events
             PlayerHealth = playerHealth;
         }
     }
+    public class PlayerGameEventArgs:EventArgs
+    {
+        public readonly bool winner;
 
+        public PlayerGameEventArgs(bool winner)
+        {
+            this.winner = winner;
+        }
+    }
     public class EnemyDestroyedEventArgs : GameEventArgs
     {
         public int Points { get; }

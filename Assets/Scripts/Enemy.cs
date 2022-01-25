@@ -118,7 +118,7 @@ namespace Azimuth
 
         private void RewardPoints()
         {
-            GameManager.Instance.SetScore(_rewardPoints);
+            GameManager.Instance.AddToScore(_rewardPoints);
         }
     }
 }

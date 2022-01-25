@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Events;
 using System;
+using Azimuth.Events;
 
 namespace Azimuth
 {
@@ -20,6 +21,7 @@ namespace Azimuth
         }
 
         public event EventHandler GameEventHandler;
+        public event EventHandler<PlayerGameEventArgs> PlayerGameEventHandler;
         private const string ScoreFormat = "000000000";
 
 #pragma warning disable IDE0044 // Add readonly modifier
@@ -31,16 +33,23 @@ namespace Azimuth
 #pragma warning restore IDE0044 // Add readonly modifier
 
         private int _maxHealth;
-        private PlayerController _player;
-        private EnemySpawner _enemySpawner;
+        private int _score;
+        private int _level;
+        private bool _isFading = false;
         private static GameManager s_manager;
+
         public static GameManager Instance
         {
             get
             {
                 if (!s_manager)
                 {
-                    return Init();
+                    s_manager = FindObjectOfType<GameManager>();
+                    if (!s_manager)
+                    {
+                        Debug.LogError($"Error no {nameof(GameManager)} object found.");
+                        return null;
+                    }
                 }
                 return s_manager;
             }
@@ -53,10 +62,7 @@ namespace Azimuth
         {
             if (s_manager == null)
             {
-                s_manager = Init();
                 DontDestroyOnLoad(gameObject);
-                _player = FindObjectOfType<PlayerController>();
-                _enemySpawner = FindObjectOfType<EnemySpawner>();
             }
             else
             {
@@ -75,35 +81,15 @@ namespace Azimuth
             DisconnectEvents();
         }
 
-        private void LateUpdate()
-        {
-            if (_player.stats.health <= 0)
-            {
-
-            }
-        }
-        private static GameManager Init()
-        {
-            s_manager = FindObjectOfType<GameManager>();
-            if (!s_manager)
-            {
-                Debug.LogError($"Error no {nameof(GameManager)} object found.");
-                return null;
-            }
-            return s_manager;
-        }
-
         private void ConnectEvents()
         {
             SceneManager.sceneLoaded += NewLevelLoaded;
-            EventManager.LevelCompletedHandler += FinishLevel;
             _maxHealth = FindObjectOfType<PlayerController>().BaseStats.health;
         }
 
         private void DisconnectEvents()
         {
             SceneManager.sceneLoaded -= NewLevelLoaded;
-            EventManager.LevelCompletedHandler -= FinishLevel;
         }
 
         private void NewLevelLoaded(Scene loaded, LoadSceneMode mode)
@@ -114,6 +100,7 @@ namespace Azimuth
 
         private IEnumerator FadeIntoLevel()
         {
+            _isFading = !_isFading;
             if (_fadeImage.color.a != 1f)
             {
                 Color c = _fadeImage.color;
@@ -144,12 +131,12 @@ namespace Azimuth
             }
             _levelDisplay.gameObject.SetActive(false);
             _fadeImage.gameObject.SetActive(false);
-            s_manager.PlayState = GameState.Playing;
-            _player.SetPlayerControl();
+            _isFading = false;
         }
 
         private IEnumerator FadeOutOfLevel()
         {
+            _isFading = true;
             s_manager.PlayState = GameState.Playing;
             if (_fadeImage.color.a != 0f)
             {
@@ -178,48 +165,47 @@ namespace Azimuth
                 a += Time.deltaTime;
                 yield return null;
             }
-            s_manager.PlayState = GameState.Loading;
+            _isFading = false;
+            _fadeImage.gameObject.SetActive(false);
         }
 
-        private void FinishLevel(object sender, Events.LevelCompletedGameEvent levelCompleted)
+        public void FinishLevel(object sender)
         {
             s_manager.PlayState = GameState.Unloading;
+            _ = StartCoroutine(FadeOutOfLevel());
             if (sender is PlayerController player)
+            {
+                player.SetPlayerControl(false);
+                _ = LevelLost();
+            }
+            else if (sender is EnemySpawner spawner)
             {
                 LevelWon();
             }
-            else
-            {
-                LevelLost();
-            }
         }
 
-        public void LevelWon()
+        public IEnumerator LevelWon()
         {
-            _ = StartCoroutine(BeginNextLevel());
+            _level = SceneManager.GetActiveScene().buildIndex;
+            yield return new WaitUntil(() => !_isFading);
+            SceneManager.LoadScene(_level);
         }
 
-        public void LevelLost()
+        public IEnumerator LevelLost()
         {
             _ = StartCoroutine(GameOver());
+            _level = SceneManager.sceneCountInBuildSettings - 1;
+            yield return new WaitUntil(() => !_isFading);
+            SceneManager.LoadScene(_level);
         }
 
         private IEnumerator GameOver()
         {
             yield return StartCoroutine(FadeOutOfLevel());
             yield return new WaitUntil(() => PlayState == GameState.Loading);
-            SceneManager.LoadScene(SceneManager.sceneCountInBuildSettings - 1);
         }
 
-        private IEnumerator BeginNextLevel()
-        {
-            yield return StartCoroutine(FadeOutOfLevel());
-            yield return new WaitUntil(() => PlayState == GameState.Loading);
-            var index = SceneManager.GetActiveScene().buildIndex;
-            SceneManager.LoadScene(index);
-        }
-
-        public void SetScore(int amount)
+        public void AddToScore(int amount)
         {
             _scoreDisplay.text = string.Format(ScoreFormat, amount);
         }
