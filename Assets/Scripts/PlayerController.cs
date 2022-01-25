@@ -39,6 +39,9 @@ namespace Azimuth
             }
         }
 
+        public event EventHandler onPlayerDestroyed;
+        public event EventHandler<PlayerHealthEventArgs> onHealthChanged;
+
         private const string Horizontal = "Horizontal";
         private const string Vertical = "Vertical";
         private const string Fire = "Fire";
@@ -50,7 +53,7 @@ namespace Azimuth
 
         [Header("Ship FX")]
         [SerializeField] private AudioClip _playerExplosionClip;
-        [SerializeField] [Range(0f,1f)] private float _explosionVolume = 1f;
+        [SerializeField] [Range(0f, 1f)] private float _explosionVolume = 1f;
         [SerializeField] private GameObject _explosionFx;
         [SerializeField] [Range(1f, 10f)] private float _explosionDuration = 3f;
 
@@ -170,9 +173,19 @@ namespace Azimuth
 
         public void TakeDamage(int damageAmount)
         {
-            int totalDamage = damageAmount - stats.shieldDefense;
-            _health = Mathf.Clamp(_health - totalDamage, 0, int.MaxValue);
-            if (_health <= 0)
+            var damage = damageAmount - stats.shieldDefense;
+            stats.shieldDefense = damage >= 0 ? 0 : Mathf.Abs(damage);
+
+            int damageAfterShields = Mathf.Max(damage, 0);
+            int oldHealth = stats.health;
+            int newHealth = Mathf.Max(oldHealth - damageAfterShields, 0);
+
+            stats.health = newHealth;
+            var e = new PlayerHealthEventArgs(_baseStats.health, newHealth, oldHealth);
+            
+            onHealthChanged?.Invoke(this, e);
+            
+            if (stats.health <= 0)
             {
                 Destroyed();
             }
@@ -180,7 +193,9 @@ namespace Azimuth
 
         public void Destroyed()
         {
-            gameObject.SetActive(false);
+            _spriteRenderer.enabled = false;
+            SetPlayerControl(false);
+            StopAllCoroutines();
             if (_explosionFx != null)
             {
                 GameObject explosion = Instantiate(_explosionFx, transform.position, Quaternion.identity);
@@ -189,35 +204,9 @@ namespace Azimuth
                                             _explosionVolume);
                 Destroy(explosion, _explosionDuration);
             }
-            EventManager.Instance.TriggerEvent(this,
-                                               new PlayerGameEvent(_score,_health,true));
-            Destroy(gameObject);
+            GameManager.Instance.FinishLevel
         }
 
         public int GetHealth() => _health;
-
-        public void OnNotify(GameEventType eventType, object sender, GameEventArgs args)
-        {
-        }
-
-        public void OnNotify(object sender, EnemyDestroyedGameEvent destroyedGameEvent)
-        {
-            _score += destroyedGameEvent.Points;
-        }
-
-        public void OnNotify(object sender, LevelCompletedGameEvent levelCompleted)
-        {
-            SetPlayerControl(false);
-        }
-
-        public void OnEventNotify(EnemyDestroyedGameEvent destroyedGameEvent)
-        {
-            Debug.Log($"{nameof(PlayerController)} notified about {destroyedGameEvent}");
-        }
-
-        public void OnEventNotify(LevelCompletedGameEvent levelCompleted)
-        {
-            Debug.Log($"{nameof(PlayerController)} notified about {levelCompleted}");
-        }
     }
 }

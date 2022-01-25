@@ -63,6 +63,8 @@ namespace Azimuth
             if (s_manager == null)
             {
                 DontDestroyOnLoad(gameObject);
+                var player = FindObjectOfType<PlayerController>();
+                player.onPlayerDestroyed += 
             }
             else
             {
@@ -169,45 +171,35 @@ namespace Azimuth
             _fadeImage.gameObject.SetActive(false);
         }
 
-        public void FinishLevel(object sender)
+        public void FinishLevel(object sender, EventArgs e)
         {
             s_manager.PlayState = GameState.Unloading;
             _ = StartCoroutine(FadeOutOfLevel());
-            if (sender is PlayerController player)
-            {
-                player.SetPlayerControl(false);
-                _ = LevelLost();
-            }
-            else if (sender is EnemySpawner spawner)
-            {
-                LevelWon();
-            }
+            _ = playerWon ? StartCoroutine(LevelWon()) : StartCoroutine(LevelLost());
         }
 
-        public IEnumerator LevelWon()
+        private IEnumerator LevelWon()
         {
             _level = SceneManager.GetActiveScene().buildIndex;
             yield return new WaitUntil(() => !_isFading);
             SceneManager.LoadScene(_level);
         }
 
-        public IEnumerator LevelLost()
+        private IEnumerator LevelLost()
         {
-            _ = StartCoroutine(GameOver());
             _level = SceneManager.sceneCountInBuildSettings - 1;
             yield return new WaitUntil(() => !_isFading);
             SceneManager.LoadScene(_level);
         }
 
-        private IEnumerator GameOver()
-        {
-            yield return StartCoroutine(FadeOutOfLevel());
-            yield return new WaitUntil(() => PlayState == GameState.Loading);
-        }
-
         public void AddToScore(int amount)
         {
             _scoreDisplay.text = string.Format(ScoreFormat, amount);
+        }
+
+        public void UpdateHealth(float maxHealth, float amount)
+        {
+            _healthDisplay.value -= delta;
         }
     }
 }

@@ -75,6 +75,32 @@ namespace Azimuth.Events
             this.winner = winner;
         }
     }
+    public class PlayerEventArgs : EventArgs
+    {
+        public enum PlayerEvent
+        {
+            Destroyed, HealthChange
+        }
+        public readonly PlayerEvent playerEvent;
+
+        public PlayerEventArgs(PlayerEvent playerEvent)
+        {
+            this.playerEvent = playerEvent;
+        }
+    }
+    public class PlayerHealthEventArgs : EventArgs
+    {
+        public readonly float maxHealth;
+        public readonly float healthValue;
+        public readonly float delta;
+
+        public PlayerHealthEventArgs(float maxHealth, float healthValue, float oldValue)
+        {
+            this.maxHealth = maxHealth;
+            this.healthValue = healthValue;
+            delta = healthValue - oldValue;
+        }
+    }
     public class EnemyDestroyedEventArgs : GameEventArgs
     {
         public int Points { get; }
