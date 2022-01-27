@@ -9,7 +9,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5098955437922197890, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
       propertyPath: m_Name
-      value: Enemy-Fast-Weak
+      value: Enemy-Fast-Weak Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 5098955437922197890, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
+      propertyPath: m_TagString
+      value: FastWeakEnemy
       objectReference: {fileID: 0}
     - target: {fileID: 5098955437922197947, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
       propertyPath: m_RootOrder

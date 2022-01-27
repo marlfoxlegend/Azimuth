@@ -20,8 +20,6 @@ namespace Azimuth
             Unloading
         }
 
-        public event EventHandler GameEventHandler;
-        public event EventHandler<PlayerGameEventArgs> PlayerGameEventHandler;
         private const string ScoreFormat = "000000000";
 
 #pragma warning disable IDE0044 // Add readonly modifier
@@ -34,8 +32,11 @@ namespace Azimuth
 
         private int _maxHealth;
         private int _score;
+        private int _highScore;
         private int _level;
         private bool _isFading = false;
+        private PlayerController _player;
+        private EnemySpawner _spawner;
         private static GameManager s_manager;
 
         public static GameManager Instance
@@ -63,8 +64,8 @@ namespace Azimuth
             if (s_manager == null)
             {
                 DontDestroyOnLoad(gameObject);
-                var player = FindObjectOfType<PlayerController>();
-                player.onPlayerDestroyed += 
+                _player = FindObjectOfType<PlayerController>();
+                _spawner = FindObjectOfType<EnemySpawner>();
             }
             else
             {
@@ -83,15 +84,21 @@ namespace Azimuth
             DisconnectEvents();
         }
 
+        
         private void ConnectEvents()
         {
             SceneManager.sceneLoaded += NewLevelLoaded;
-            _maxHealth = FindObjectOfType<PlayerController>().BaseStats.health;
+            _player.onPlayerDestroyed += FinishLevel;
+            _player.onHealthChanged += UpdateHealth;
+            _spawner.onEnemyDestroyed += AddToScore;
         }
 
         private void DisconnectEvents()
         {
             SceneManager.sceneLoaded -= NewLevelLoaded;
+            _player.onPlayerDestroyed -= FinishLevel;
+            _player.onHealthChanged -= UpdateHealth;
+            _spawner.onEnemyDestroyed -= AddToScore;
         }
 
         private void NewLevelLoaded(Scene loaded, LoadSceneMode mode)
@@ -171,35 +178,40 @@ namespace Azimuth
             _fadeImage.gameObject.SetActive(false);
         }
 
-        public void FinishLevel(object sender, EventArgs e)
+        public void FinishLevel(object sender, LevelFinishedEventArgs e)
         {
             s_manager.PlayState = GameState.Unloading;
-            _ = StartCoroutine(FadeOutOfLevel());
-            _ = playerWon ? StartCoroutine(LevelWon()) : StartCoroutine(LevelLost());
+            _ = e.PlayerWon ? StartCoroutine(LevelWon()) : StartCoroutine(LevelLost());
+        }
+
+        public void TriggerLevelFinish(bool winner)
+        {
+
         }
 
         private IEnumerator LevelWon()
         {
+            yield return StartCoroutine(FadeOutOfLevel());
             _level = SceneManager.GetActiveScene().buildIndex;
-            yield return new WaitUntil(() => !_isFading);
             SceneManager.LoadScene(_level);
         }
 
         private IEnumerator LevelLost()
         {
+            yield return StartCoroutine(FadeOutOfLevel());
             _level = SceneManager.sceneCountInBuildSettings - 1;
-            yield return new WaitUntil(() => !_isFading);
             SceneManager.LoadScene(_level);
         }
 
-        public void AddToScore(int amount)
+        public void AddToScore(object sender, EnemyDestroyedEventArgs e)
         {
-            _scoreDisplay.text = string.Format(ScoreFormat, amount);
+            _score += e.Points;
+            _scoreDisplay.text = string.Format(ScoreFormat, _score);
         }
 
-        public void UpdateHealth(float maxHealth, float amount)
+        public void UpdateHealth(object sender, PlayerHealthEventArgs e)
         {
-            _healthDisplay.value -= delta;
+            _healthDisplay.value = e.HealthValue / e.MaxHealth;
         }
     }
 }

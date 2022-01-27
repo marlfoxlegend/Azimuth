@@ -8,7 +8,7 @@ namespace Azimuth
 {
     public class PlayerController : MonoBehaviour, IDestroyable
     {
-        [System.Serializable]
+        [Serializable]
         public class PowerUpStat
         {
             public Stats modifiers;
@@ -17,8 +17,8 @@ namespace Azimuth
             public float maxTime;
         }
 
-        [System.Serializable]
-        public struct Stats
+        [Serializable]
+        public class Stats
         {
             public int health;
             public float shipSpeed;
@@ -26,9 +26,20 @@ namespace Azimuth
             public int activeLaserGuns;
             public int shieldDefense;
 
+            #region Constructors
+            public Stats()
+            {
+            }
+
+            public Stats(Stats stats) : this()
+            {
+                AddToStats(stats);
+            }
+            #endregion
+
             public static Stats operator +(Stats a, Stats b)
             {
-                return new Stats
+                return new Stats()
                 {
                     health = a.health + b.health,
                     shipSpeed = a.shipSpeed + b.shipSpeed,
@@ -37,9 +48,18 @@ namespace Azimuth
                     shieldDefense = a.shieldDefense + b.shieldDefense
                 };
             }
+
+            public void AddToStats(Stats stats)
+            {
+                health += stats.health;
+                shipSpeed += stats.shipSpeed;
+                laserCoolDown += stats.laserCoolDown;
+                activeLaserGuns += stats.activeLaserGuns;
+                shieldDefense += stats.shieldDefense;
+            }
         }
 
-        public event EventHandler onPlayerDestroyed;
+        public event EventHandler<LevelFinishedEventArgs> onPlayerDestroyed;
         public event EventHandler<PlayerHealthEventArgs> onHealthChanged;
 
         private const string Horizontal = "Horizontal";
@@ -47,8 +67,6 @@ namespace Azimuth
         private const string Fire = "Fire";
 
         [SerializeField] private Stats _baseStats;
-        [SerializeField] private int _health = 100;
-        [SerializeField] private int _score = 0;
         [SerializeField] [Range(0f, 1f)] private float _maxYBoundary;
 
         [Header("Ship FX")]
@@ -58,7 +76,7 @@ namespace Azimuth
         [SerializeField] [Range(1f, 10f)] private float _explosionDuration = 3f;
 
 
-        [Tooltip("READ ONLY")] public Stats stats;
+        public Stats stats;
 
         private Rigidbody2D _rb;
         private SpriteRenderer _spriteRenderer;
@@ -68,11 +86,9 @@ namespace Azimuth
         private Vector2 _minBoundary;
         private Coroutine _firingLasers = null;
 
-        public Stats BaseStats => _baseStats;
-
-
         private void Awake()
         {
+            stats = new Stats(_baseStats);
             _rb = GetComponent<Rigidbody2D>();
             _spriteRenderer = GetComponent<SpriteRenderer>();
             _shooters = new List<LaserShooter>(GetComponentsInChildren<LaserShooter>());
@@ -81,7 +97,6 @@ namespace Azimuth
 
         private void OnEnable()
         {
-            stats = _baseStats;
         }
 
         private void OnDisable()
@@ -173,18 +188,24 @@ namespace Azimuth
 
         public void TakeDamage(int damageAmount)
         {
-            var damage = damageAmount - stats.shieldDefense;
-            stats.shieldDefense = damage >= 0 ? 0 : Mathf.Abs(damage);
+            var remainingShields = stats.shieldDefense - damageAmount;
+            int damageRemaining;
+            if (remainingShields >= 0)
+            {
+                stats.shieldDefense = remainingShields;
+                damageRemaining = 0;
+            }
+            else
+            {
+                stats.shieldDefense = 0;
+                damageRemaining = Mathf.Abs(remainingShields);
+            }
 
-            int damageAfterShields = Mathf.Max(damage, 0);
             int oldHealth = stats.health;
-            int newHealth = Mathf.Max(oldHealth - damageAfterShields, 0);
-
-            stats.health = newHealth;
-            var e = new PlayerHealthEventArgs(_baseStats.health, newHealth, oldHealth);
-            
+            stats.health = Mathf.Max(oldHealth - damageRemaining, 0);
+            var e = new PlayerHealthEventArgs(_baseStats.health, stats.health, oldHealth);
             onHealthChanged?.Invoke(this, e);
-            
+
             if (stats.health <= 0)
             {
                 Destroyed();
@@ -204,9 +225,9 @@ namespace Azimuth
                                             _explosionVolume);
                 Destroy(explosion, _explosionDuration);
             }
-            GameManager.Instance.FinishLevel
+            onPlayerDestroyed?.Invoke(this, new LevelFinishedEventArgs(false));
         }
 
-        public int GetHealth() => _health;
+        public int GetHealth() => stats.health;
     }
 }

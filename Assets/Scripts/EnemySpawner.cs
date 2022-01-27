@@ -7,31 +7,29 @@ using UnityEngine;
 
 namespace Azimuth
 {
-    public class EnemySpawner : MonoBehaviour, ISubscriber
+    public class EnemySpawner : MonoBehaviour
     {
+        public event EventHandler<EnemyDestroyedEventArgs> onEnemyDestroyed;
+
         [SerializeField] private List<Wave> _waves;
         [SerializeField] [Range(0, 20)] private int _loopCount = 1;
 
+        private readonly HashSet<Enemy> _enemies = new HashSet<Enemy>();
         private bool _waveCompleted = false;
         private bool _spawningCompleted;
-        private int _spawns;
-
-        private void OnEnable()
-        {
-            EventManager.PlayerEventHandler += OnNotify;
-            EventManager.EnemyDestroyedHandler += OnNotify;
-        }
-
-        private void OnDisable()
-        {
-            EventManager.PlayerEventHandler -= OnNotify;
-            EventManager.EnemyDestroyedHandler -= OnNotify;
-        }
 
         private void Start()
         {
-            _spawns = _waves.Sum(w => w.NumberOfEnemies * _loopCount);
             _ = StartCoroutine(StartSpawning());
+        }
+
+        private void LateUpdate()
+        {
+            var cleared = AllSpawnCleared();
+            if (cleared)
+            {
+                GameManager.Instance.TriggerLevelFinish(cleared);
+            }
         }
 
         private IEnumerator StartSpawning()
@@ -55,7 +53,8 @@ namespace Azimuth
 
         private IEnumerator SpawnWaveEnemies(Wave wave)
         {
-            PathCreation.VertexPath path = wave.PathCreators[UnityEngine.Random.Range(0, wave.PathCreators.Count)].path;
+            int index = UnityEngine.Random.Range(0, wave.PathCreators.Count);
+            PathCreation.VertexPath path = wave.PathCreators[index].path;
             for (int i = 0; i < wave.NumberOfEnemies; i++)
             {
                 var enemy = Instantiate(wave.EnemyInWave,
@@ -63,55 +62,41 @@ namespace Azimuth
                                         Quaternion.identity,
                                         transform);
                 enemy.GetComponent<EnemyPathing>().SetPath(path);
-                enemy.SetSprite(wave.Sprite);
+                enemy.SetSprite(wave.Sprite).SetSpawner(this);
+                _enemies.Add(enemy);
                 yield return new WaitForSeconds(wave.TimeBetweenEnemySpawn);
             }
             _waveCompleted = true;
         }
 
-        private void StopSpawning()
+        public void StopSpawning()
         {
             Debug.Log($"{nameof(EnemySpawner)} has stopped spawning.", this);
 
             StopAllCoroutines();
         }
 
-        private void SpawnKilled(Enemy enemy)
+        public void RemoveSpawn(Enemy enemy, bool isDestroyed)
         {
-            Destroy(enemy.gameObject);
-            if (transform.childCount == 0)
-            {
-                _waveCompleted = true;
-            }
+            _ = _enemies.Remove(enemy);
+            enemy.gameObject.SetActive(false);
+            var e = new EnemyDestroyedEventArgs(enemy.RewardPoints(), isDestroyed);
+            onEnemyDestroyed?.Invoke(enemy, e);
         }
 
-        public void OnNotify(GameEventType eventType, object sender, GameEventArgs args)
+        private IEnumerator CheckAllSpawnRemoved()
         {
-            switch (eventType)
+            while (true)
             {
-                case GameEventType.EnemyDestroyed:
-                    SpawnKilled((Enemy)sender);
-                    break;
-                case GameEventType.PlayerDestroyed:
-                    StopAllCoroutines();
-                    break;
-                default:
-                    break;
+                if (AllSpawnCleared())
+                {
+                    yield break;
+                }
             }
         }
-
-        public void OnNotify(object sender, PlayerGameEvent playerDestroyed)
+        public bool AllSpawnCleared()
         {
-            Debug.Log($"{nameof(EnemySpawner)} notified about {playerDestroyed}");
-            if (playerDestroyed.PlayerDestroyed)
-            {
-                StopSpawning();
-            }
-        }
-
-        public void OnNotify(object sender, EnemyDestroyedGameEvent enemyDestroyed)
-        {
-            Debug.Log($"{nameof(EnemySpawner)} notified about {enemyDestroyed}");
+            return _enemies.Count == 0 && _spawningCompleted;
         }
     }
 }

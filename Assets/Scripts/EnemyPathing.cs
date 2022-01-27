@@ -7,7 +7,6 @@ namespace Azimuth
     public class EnemyPathing : MonoBehaviour
     {
         [SerializeField] private float _speed = 3f;
-
         private Rigidbody2D _r2d;
         private Enemy _enemy;
         private PathCreation.VertexPath _vertexPath;
@@ -30,12 +29,15 @@ namespace Azimuth
             if (transform.position == _vertexPath.GetPoint(_vertexPath.NumPoints - 1))
             {
                 gameObject.SetActive(false);
-                EventManager.Instance.TriggerEvent(_enemy,
-                                                   new Events.EnemyDestroyedGameEvent(0));
+                _enemy.GetSpawner().RemoveSpawn(_enemy, false);
             }
         }
 
-        public void SetPath(PathCreation.VertexPath vertexPath) => _vertexPath = vertexPath;
+        public EnemyPathing SetPath(PathCreation.VertexPath vertexPath)
+        {
+            _vertexPath = vertexPath;
+            return this;
+        }
 
         private void MoveAlongPath()
         {
@@ -52,6 +54,5 @@ namespace Azimuth
             var direction = heading / distance;
             return direction;
         }
-
     }
 }

@@ -169,13 +169,13 @@ MonoBehaviour:
   pool:
   - numberToPool: 75
     objectToPool: {fileID: 638410362925149356, guid: 54e361b6806032d45bdecf68c9099521, type: 3}
-    newObjectName: LaserEnemy
+    newObjectName: EnemyLaser
   - numberToPool: 80
     objectToPool: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
-    newObjectName: Laser
+    newObjectName: PlayerLaser
   - numberToPool: 30
     objectToPool: {fileID: 6171539566329867399, guid: dbc92741712b25f4c923d15d923c5fda, type: 3}
-    newObjectName: LaserEnemyLarge
+    newObjectName: LargeEnemyLaser
 --- !u!1 &117936538
 GameObject:
   m_ObjectHideFlags: 0

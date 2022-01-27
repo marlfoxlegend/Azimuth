@@ -1,74 +1,108 @@
 using System;
-using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Azimuth
 {
-    public class ObjectPooler : MonoBehaviour
+    [Serializable]
+    public class PooledObject
     {
-        [System.Serializable]
-        public class PooledObject
+        public int numberToPool;
+        public GameObject objectToPool;
+        public string newObjectName;
+        public readonly List<GameObject> objects = new List<GameObject>();
+
+        public PooledObject(GameObject objectToPool, int numberToPool = 20, string newObjectName = null)
         {
-            public int numberToPool = 10;
-            public GameObject objectToPool;
-            public string newObjectName;
+            this.numberToPool = numberToPool;
+            this.objectToPool = objectToPool;
+            this.newObjectName = newObjectName ?? objectToPool.tag;
         }
 
-        public List<PooledObject> pool = new List<PooledObject>();
+        public void BuildPool(ObjectPooler pooler, int startIndex = 0)
+        {
+            for (int i = 0; i < numberToPool; i++)
+            {
+                var obj = GameObject.Instantiate(objectToPool, pooler.transform, true);
+                obj.SetActive(false);
+                obj.name = $"{newObjectName}_{i + startIndex:00#}";
+                objects.Add(obj);
+            }
+        }
+    }
 
-        Dictionary<string, List<GameObject>> aggregatePools = new Dictionary<string, List<GameObject>>();
+    public class ObjectPooler : MonoBehaviour
+    {
+        private List<PooledObject> _pools;
+
+        private void Awake()
+        {
+            _pools = new List<PooledObject>();
+        }
 
         private void OnEnable()
         {
-            foreach (PooledObject obj in pool)
+            if (_pools.Count == 0)
             {
-                if (string.IsNullOrEmpty(obj.newObjectName))
-                {
-                    Debug.LogWarning($"{nameof(PooledObject)}<{obj.objectToPool.name}> has empty or null name.");
-                    continue;
-                }
-                aggregatePools.Add(obj.newObjectName, new List<GameObject>());
-                CreatePooledObjects(obj);
+                Init();
             }
         }
 
-        private void CreatePooledObjects(PooledObject pooledObject)
+        private void Init()
         {
+            foreach (PooledObject po in _pools)
+            {
+                if (po.objects.Count > 0)
+                    continue;
+                po.BuildPool(this);
+            }
+        }
+
+        private void CreatePooledObjects(PooledObject pooledObject, int startIndex)
+        {
+            var goPool = new List<GameObject>();
             for (int i = 0; i < pooledObject.numberToPool; i++)
             {
                 var createdObj = Instantiate(pooledObject.objectToPool, transform, true);
                 createdObj.SetActive(false);
-                createdObj.name = $"{pooledObject.newObjectName} {i}";
-                aggregatePools[pooledObject.newObjectName].Add(createdObj);
+                createdObj.name = $"{pooledObject.newObjectName}_{i + startIndex:00#}";
+                goPool.Add(createdObj);
             }
+            return goPool;
         }
 
-        public GameObject GetObjectFromPool(string objectName)
+        public GameObject GetObjectFromPool(GameObject go)
         {
-            if (aggregatePools.ContainsKey(objectName))
+            var obj = _pools.SingleOrDefault(po => po.objectToPool == go);
+            if (obj != null)
             {
-                List<GameObject> objectsInPool = aggregatePools[objectName];
-                for (int i = 0; i < objectsInPool.Count; i++)
-                {
-                    if (!objectsInPool[i].activeInHierarchy)
-                    {
-                        return objectsInPool[i];
-                    }
-                }
+                return obj.objects.FirstOrDefault(go => !go.activeInHierarchy);
             }
             return null;
         }
 
         public void ReturnObjectToPool(GameObject go)
         {
-            if (go.transform.parent == transform)
+            var obj = _pools.SingleOrDefault(po => po.objectToPool == go);
+            if (obj != null)
             {
+                if (!obj.objects.Contains(go))
+                {
+                    Debug.LogWarning(
+                        $"Attempted to return an invalid object: {go.name} into pool: {go}");
+                    return;
+                }
                 go.SetActive(false);
             }
-            else
+        }
+
+        public void AddPool(PooledObject pooledObject)
+        {
+            if (!_pools.Contains(pooledObject))
             {
-                Destroy(go);
+                pooledObject.BuildPool(this);
+                _pools.Add(pooledObject);
             }
         }
     }

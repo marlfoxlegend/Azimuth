@@ -5,108 +5,51 @@ using UnityEngine;
 
 namespace Azimuth.Events
 {
-    public class GameEvent
+    public class LevelFinishedEventArgs : EventArgs
     {
-    }
-    public class LevelCompletedGameEvent
-    {
-        protected Action finishTask;
-        public Action FinishTask
+        public bool PlayerWon { get; }
+
+        public LevelFinishedEventArgs(bool playerWon)
         {
-            get => finishTask;
-            set
-            {
-                if (finishTask == null)
-                {
-                    finishTask = value;
-                }
-                else
-                {
-                    finishTask += value;
-                }
-            }
+            PlayerWon = playerWon;
         }
     }
-
-    public struct PlayerGameEvent
+    public class PlayerStateEventArgs : EventArgs
     {
-        public int PlayerScore { get; }
-        public int PlayerHealth { get; }
-        public bool PlayerDestroyed { get; }
-
-        public PlayerGameEvent(int playerScore, int playerHealth, bool playerDestroyed) : this()
+        public enum PlayerEventType
         {
-            PlayerScore = playerScore;
-            PlayerHealth = playerHealth;
-            PlayerDestroyed = playerDestroyed;
+            Destroyed, PowerUpCollected
         }
-    }
+        
+        public PlayerEventType PlayerEvent { get; }
+        public PlayerController.PowerUpStat PowerUp { get; }
 
-    public struct EnemyDestroyedGameEvent
-    {
-        public int Points { get; }
-
-        public EnemyDestroyedGameEvent(int points): this()
+        public PlayerStateEventArgs(
+            PlayerEventType playerEventType, PlayerController.PowerUpStat powerUp = null)
         {
-            Points = points;
-        }
-    }
-
-    public class GameEventArgs : EventArgs
-    {
-        public static new GameEventArgs Empty => EventArgs.Empty as GameEventArgs;
-    }
-    public class PlayerDestroyedEventArgs : GameEventArgs
-    {
-        public int PlayerScore { get; }
-        public int PlayerHealth { get; }
-        public PlayerDestroyedEventArgs(int playerScore, int playerHealth)
-        {
-            PlayerScore = playerScore;
-            PlayerHealth = playerHealth;
-        }
-    }
-    public class PlayerGameEventArgs:EventArgs
-    {
-        public readonly bool winner;
-
-        public PlayerGameEventArgs(bool winner)
-        {
-            this.winner = winner;
-        }
-    }
-    public class PlayerEventArgs : EventArgs
-    {
-        public enum PlayerEvent
-        {
-            Destroyed, HealthChange
-        }
-        public readonly PlayerEvent playerEvent;
-
-        public PlayerEventArgs(PlayerEvent playerEvent)
-        {
-            this.playerEvent = playerEvent;
+            PlayerEvent = playerEventType;
+            PowerUp = powerUp;
         }
     }
     public class PlayerHealthEventArgs : EventArgs
     {
-        public readonly float maxHealth;
-        public readonly float healthValue;
-        public readonly float delta;
+        public float MaxHealth { get; }
+        public float HealthValue { get; }
+        public float OldHealthValue { get; }
 
         public PlayerHealthEventArgs(float maxHealth, float healthValue, float oldValue)
         {
-            this.maxHealth = maxHealth;
-            this.healthValue = healthValue;
-            delta = healthValue - oldValue;
+            MaxHealth = maxHealth;
+            HealthValue = healthValue;
+            OldHealthValue = oldValue;
         }
     }
-    public class EnemyDestroyedEventArgs : GameEventArgs
+    public class EnemyDestroyedEventArgs : EventArgs
     {
         public int Points { get; }
         public bool DestroyedByPlayer { get; }
 
-        public EnemyDestroyedEventArgs(int points, bool destroyedByPlayer)
+        public EnemyDestroyedEventArgs(int points, bool destroyedByPlayer = true)
         {
             Points = points;
             DestroyedByPlayer = destroyedByPlayer;

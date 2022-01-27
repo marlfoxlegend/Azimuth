@@ -162,7 +162,6 @@ MonoBehaviour:
     laserCoolDown: 0.19
     activeLaserGuns: 1
     shieldDefense: 0
-  _health: 400
   _maxYBoundary: 1
   _playerExplosionClip: {fileID: 0}
   _explosionVolume: 1

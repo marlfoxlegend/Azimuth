@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Azimuth
 {
-    public class Enemy : MonoBehaviour, IDestroyer, IDestroyable
+    public class Enemy : MonoBehaviour, IDestroyer, IDestroyable, ISpawnable<EnemySpawner>
     {
         [SerializeField] [Min(0f)] private int _rewardPoints = 50;
         [SerializeField] [Min(0f)] private int _health = 100;
@@ -23,6 +23,7 @@ namespace Azimuth
 
         private Coroutine _firing;
 
+        private EnemySpawner _spawner;
 
         private void OnBecameVisible()
         {
@@ -49,10 +50,6 @@ namespace Azimuth
             }
         }
 
-        private void OnDestroy()
-        {
-        }
-
         private IEnumerator RandomFireLaser()
         {
             while (true)
@@ -69,7 +66,6 @@ namespace Azimuth
             _health -= damageAmount;
             if (_health <= 0)
             {
-                // TODO: add to game session's score
                 Destroyed();
             }
         }
@@ -99,11 +95,10 @@ namespace Azimuth
                 Destroy(explosion, _explosionDuration);
             }
 
-            var destroyedEventArgs = new Events.EnemyDestroyedGameEvent(_rewardPoints);
-            EventManager.Instance.TriggerEvent(this, destroyedEventArgs);
+            _spawner.RemoveSpawn(this, true);
         }
 
-        public void SetSprite(Sprite sprite)
+        public Enemy SetSprite(Sprite sprite)
         {
             SpriteRenderer sp = GetComponent<SpriteRenderer>();
             PolygonCollider2D collider2D = GetComponent<PolygonCollider2D>();
@@ -114,11 +109,13 @@ namespace Azimuth
             {
                 collider2D.points = shapes.ToArray();
             }
+            return this;
         }
 
-        private void RewardPoints()
-        {
-            GameManager.Instance.AddToScore(_rewardPoints);
-        }
+        public int RewardPoints() => _rewardPoints;
+
+        public EnemySpawner GetSpawner() => _spawner;
+
+        public void SetSpawner(EnemySpawner spawner) => _spawner = spawner;
     }
 }
