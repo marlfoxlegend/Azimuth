@@ -166,16 +166,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f3221633261ceb438ddd83b3427dd3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pool:
-  - numberToPool: 75
-    objectToPool: {fileID: 638410362925149356, guid: 54e361b6806032d45bdecf68c9099521, type: 3}
-    newObjectName: EnemyLaser
-  - numberToPool: 80
+  _pooledObjects:
+  - category: 0
+    numberToPool: 40
     objectToPool: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
-    newObjectName: PlayerLaser
-  - numberToPool: 30
+    name: PlayerLaser
+  - category: 1
+    numberToPool: 40
+    objectToPool: {fileID: 638410362925149356, guid: 54e361b6806032d45bdecf68c9099521, type: 3}
+    name: EnemyLaser
+  - category: 2
+    numberToPool: 25
     objectToPool: {fileID: 6171539566329867399, guid: dbc92741712b25f4c923d15d923c5fda, type: 3}
-    newObjectName: LargeEnemyLaser
+    name: EnemyLargeLaser
 --- !u!1 &117936538
 GameObject:
   m_ObjectHideFlags: 0
@@ -366,7 +369,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c514ca2a828adbe419e7bcd6cd899b35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  laserLayerName: Lasers
 --- !u!1001 &1489853734
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5272,7 +5274,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c514ca2a828adbe419e7bcd6cd899b35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  laserLayerName: Lasers
 --- !u!1 &1740726607
 GameObject:
   m_ObjectHideFlags: 0
@@ -10149,7 +10150,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c514ca2a828adbe419e7bcd6cd899b35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  laserLayerName: Lasers
 --- !u!1 &1914943948
 GameObject:
   m_ObjectHideFlags: 0
@@ -10220,7 +10220,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c514ca2a828adbe419e7bcd6cd899b35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  laserLayerName: Lasers
 --- !u!1 &1941965630
 GameObject:
   m_ObjectHideFlags: 0
@@ -10485,34 +10484,6 @@ PrefabInstance:
     - target: {fileID: 5785141787315156998, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_Target
-      value: 
-      objectReference: {fileID: 1153541706739576511, guid: d12b5176579d42a49ab2bc7fd6f10d89, type: 3}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: LevelFinished
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: Azimuth.EnemySpawner, Assembly-CSharp
-      objectReference: {fileID: 0}
-    - target: {fileID: 6272980805255298617, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
-      propertyPath: onLevelFinished.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 6272980805255298622, guid: b4f3f685078dfbe4f94caab0d93739f4, type: 3}
       propertyPath: m_RootOrder

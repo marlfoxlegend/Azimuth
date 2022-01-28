@@ -13,26 +13,16 @@ namespace Azimuth
         [SerializeField] [Min(0f)] private float _rotationSpeed = 0f;
         [SerializeField] [Range(0f,100f)] private float _laserSpeed = 10f;
 
-        private ObjectPooler _pooler;
         private Rigidbody2D _rb;
-        private SpriteRenderer _sprite;
-
 
         private void OnEnable()
         {
-            _pooler = FindObjectOfType<ObjectPooler>();
             _rb = GetComponent<Rigidbody2D>();
-            _sprite = GetComponent<SpriteRenderer>();
         }
 
         private void FixedUpdate()
         {
             MoveLaser();
-        }
-
-        private void OnBecameInvisible()
-        {
-            _pooler.ReturnObjectToPool(gameObject);
         }
 
         private void MoveLaser()
@@ -58,7 +48,7 @@ namespace Azimuth
         public void DamageTarget(IDestroyable target)
         {
             target.TakeDamage(_damageAmount);
-            _pooler.ReturnObjectToPool(gameObject);
+            FindObjectOfType<ObjectPooler>().ReturnObjectToPool(gameObject);
         }
     }
 }

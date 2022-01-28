@@ -84,7 +84,7 @@ namespace Azimuth
         private List<PowerUpStat> _powerUps = new List<PowerUpStat>();
         private Vector2 _maxBoundary;
         private Vector2 _minBoundary;
-        private Coroutine _firingLasers = null;
+        private bool _firingLasers = false;
 
         private void Awake()
         {
@@ -97,6 +97,7 @@ namespace Azimuth
 
         private void OnEnable()
         {
+            GameManager.Instance.maxHealth = _baseStats.health;
         }
 
         private void OnDisable()
@@ -106,10 +107,13 @@ namespace Azimuth
 
         private void Update()
         {
-            if (Input.GetButtonDown(Fire))
+            if (Input.GetButton(Fire))
             {
-                Debug.Log($"Fire button held: {Input.GetButtonDown(Fire)}");
-                FireLaser();
+                StartFiringLaser();
+            }
+            else
+            {
+                StopFiringLaser();
             }
         }
 
@@ -136,11 +140,10 @@ namespace Azimuth
 
         private IEnumerator FiringLasers()
         {
-            while (true)
+            while (_firingLasers)
             {
                 for (var i = 0; i < stats.activeLaserGuns; i++)
                 {
-                    Debug.Log($"Firing from {_shooters[i].name}.", this);
                     _shooters[i].ShootLaser();
                 }
                 yield return new WaitForSeconds(stats.laserCoolDown);
@@ -163,16 +166,19 @@ namespace Azimuth
             _rb.simulated = allowPlayerControl;
         }
 
-        public void FireLaser()
+        public void StartFiringLaser()
         {
-            if (_firingLasers == null)
+            if (!_firingLasers)
             {
-                _firingLasers = StartCoroutine(FiringLasers());
+                _firingLasers = true;
+                _ = StartCoroutine(FiringLasers());
             }
-            else
-            {
-                StopCoroutine(_firingLasers);
-            }
+        }
+
+        public void StopFiringLaser()
+        {
+            _firingLasers = false;
+            StopCoroutine(FiringLasers());
         }
 
         public void MoveShip(Vector3 movement)
@@ -204,7 +210,12 @@ namespace Azimuth
             int oldHealth = stats.health;
             stats.health = Mathf.Max(oldHealth - damageRemaining, 0);
             var e = new PlayerHealthEventArgs(_baseStats.health, stats.health, oldHealth);
-            onHealthChanged?.Invoke(this, e);
+            GameManager.Instance.UpdateHealth(e);
+            //var handler = onHealthChanged;
+            //if (handler != null)
+            //{
+            //    handler(this, e);
+            //}
 
             if (stats.health <= 0)
             {
@@ -214,9 +225,8 @@ namespace Azimuth
 
         public void Destroyed()
         {
-            _spriteRenderer.enabled = false;
             SetPlayerControl(false);
-            StopAllCoroutines();
+            gameObject.SetActive(false);
             if (_explosionFx != null)
             {
                 GameObject explosion = Instantiate(_explosionFx, transform.position, Quaternion.identity);
@@ -225,9 +235,12 @@ namespace Azimuth
                                             _explosionVolume);
                 Destroy(explosion, _explosionDuration);
             }
-            onPlayerDestroyed?.Invoke(this, new LevelFinishedEventArgs(false));
+
+            GameManager.Instance.FinishLevel(false);
         }
 
         public int GetHealth() => stats.health;
+
+        public int GetMaxHealth() => _baseStats.health;
     }
 }

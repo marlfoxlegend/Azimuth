@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3053360028354769842
 Transform:
   m_ObjectHideFlags: 0
@@ -96,6 +96,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f6551b067984897c23f4c117617e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _pooledObjectName: Laser
+  pooledLaser: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+  _laserPoolAmount: 20
   _laserClips: []
   _laserVolume: 1

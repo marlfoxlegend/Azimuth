@@ -6,22 +6,20 @@ namespace Azimuth
 {
 	public class LaserDestroyer : MonoBehaviour
 	{
-		public string laserLayerName = "Lasers";
-
-		ObjectPooler pooler;
+        private ObjectPooler _pooler;
 
 		private void Awake()
 		{
-			pooler = FindObjectOfType<ObjectPooler>();
+			_pooler = FindObjectOfType<ObjectPooler>();
 		}
 
 		private void OnTriggerEnter2D(Collider2D collision)
 		{
-			var layer = collision.gameObject.layer;
-			if (LayerMask.NameToLayer(laserLayerName) == layer)
-			{
-				pooler.ReturnObjectToPool(collision.gameObject);
-			}
+            var laser = collision.gameObject.GetComponent<Laser>();
+            if (laser != null)
+            {
+                _pooler.ReturnObjectToPool(laser.gameObject);
+            }
 		}
 	}
 }

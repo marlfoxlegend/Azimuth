@@ -8,7 +8,6 @@ namespace Azimuth
     {
         [SerializeField] private float _speed = 3f;
         private Rigidbody2D _r2d;
-        private Enemy _enemy;
         private PathCreation.VertexPath _vertexPath;
         private float _dst = 0f;
 
@@ -16,28 +15,22 @@ namespace Azimuth
         private void Awake()
         {
             _r2d = GetComponent<Rigidbody2D>();
-            _enemy = GetComponent<Enemy>();
         }
 
         private void FixedUpdate()
         {
             MoveAlongPath();
+            if (transform.position == _vertexPath.GetPoint(_vertexPath.NumPoints - 1))
+            {
+                GetComponent<Enemy>().CompletedPath();
+            }
         }
 
         private void LateUpdate()
         {
-            if (transform.position == _vertexPath.GetPoint(_vertexPath.NumPoints - 1))
-            {
-                gameObject.SetActive(false);
-                _enemy.GetSpawner().RemoveSpawn(_enemy, false);
-            }
         }
 
-        public EnemyPathing SetPath(PathCreation.VertexPath vertexPath)
-        {
-            _vertexPath = vertexPath;
-            return this;
-        }
+        public void SetPath(PathCreation.VertexPath vertexPath) => _vertexPath = vertexPath;
 
         private void MoveAlongPath()
         {

@@ -21,15 +21,16 @@ namespace Azimuth
         [SerializeField] [Range(0f, 1f)] private float _explosionVolume = 1f;
         [SerializeField] [Range(1f, 10f)] private float _explosionDuration = 3f;
 
-        private Coroutine _firing;
+        private bool _firing = false;
 
         private EnemySpawner _spawner;
 
         private void OnBecameVisible()
         {
-            if (_firing == null)
+            if (!_firing)
             {
-                _firing = StartCoroutine(RandomFireLaser());
+                _ = StartCoroutine(RandomFireLaser());
+                _firing = true;
             }
         }
 
@@ -42,14 +43,6 @@ namespace Azimuth
             }
         }
 
-        private void OnBecameInvisible()
-        {
-            if (_firing != null)
-            {
-                StopCoroutine(_firing);
-            }
-        }
-
         private IEnumerator RandomFireLaser()
         {
             while (true)
@@ -59,7 +52,17 @@ namespace Azimuth
             }
         }
 
-        public void CeaseFire() => StopCoroutine(_firing);
+        public void CompletedPath()
+        {
+            gameObject.SetActive(false);
+            _spawner.RemoveSpawn(this, false);
+        }
+
+        public void CeaseFire()
+        {
+            StopCoroutine(RandomFireLaser());
+            _firing = false;
+        }
 
         public void TakeDamage(int damageAmount)
         {
@@ -98,7 +101,7 @@ namespace Azimuth
             _spawner.RemoveSpawn(this, true);
         }
 
-        public Enemy SetSprite(Sprite sprite)
+        public void SetSprite(Sprite sprite)
         {
             SpriteRenderer sp = GetComponent<SpriteRenderer>();
             PolygonCollider2D collider2D = GetComponent<PolygonCollider2D>();
@@ -109,7 +112,6 @@ namespace Azimuth
             {
                 collider2D.points = shapes.ToArray();
             }
-            return this;
         }
 
         public int RewardPoints() => _rewardPoints;

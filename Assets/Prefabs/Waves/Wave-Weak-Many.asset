@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _enemyInWave: {fileID: 234288667866892435, guid: aeacc8b77281bd3499d096b11f14385b, type: 3}
   _sprite: {fileID: 21300000, guid: c01cb7038d7fb5245ae35998bf876203, type: 3}
-  _numberOfEnemies: 18
+  _numberOfEnemies: 21
   _timeBetweenEnemySpawn: 0.61
   _timeBetweenWaveSpawn: 4.09
   _pathCreators:

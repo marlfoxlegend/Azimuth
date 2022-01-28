@@ -96,7 +96,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f6551b067984897c23f4c117617e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _pooledObjectName: Laser
+  pooledLaser: {fileID: 4971786769756857363, guid: 00f78227e8e4daf4393c9cc027a4ad70, type: 3}
+  _laserPoolAmount: 50
   _laserClips:
   - {fileID: 8300000, guid: b308d551739d26c40b45ea4011b2758f, type: 3}
   - {fileID: 8300000, guid: dfb6d24521e1efa42b55ed50a888c046, type: 3}

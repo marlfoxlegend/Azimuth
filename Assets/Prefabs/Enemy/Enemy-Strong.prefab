@@ -9,7 +9,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5098955437922197890, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
       propertyPath: m_Name
-      value: Enemy-Slow-Strong Variant
+      value: Enemy-Strong
       objectReference: {fileID: 0}
     - target: {fileID: 5098955437922197890, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
       propertyPath: m_TagString
@@ -61,6 +61,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5098955437922197948, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
       propertyPath: _speed
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5098955437922197949, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
+      propertyPath: pooledLaser
+      value: 
+      objectReference: {fileID: 6171539566329867399, guid: dbc92741712b25f4c923d15d923c5fda, type: 3}
+    - target: {fileID: 5098955437922197949, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}
+      propertyPath: laserCategory
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5098955437922197949, guid: 9fde7b9de9747594da504bd585ea1b5c, type: 3}

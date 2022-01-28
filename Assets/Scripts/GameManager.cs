@@ -20,7 +20,7 @@ namespace Azimuth
             Unloading
         }
 
-        private const string ScoreFormat = "000000000";
+        private const string ScoreFormat = "{0:00000000#}";
 
 #pragma warning disable IDE0044 // Add readonly modifier
         [SerializeField] private Image _fadeImage;
@@ -30,13 +30,14 @@ namespace Azimuth
         [SerializeField] private TextMeshProUGUI _levelDisplay;
 #pragma warning restore IDE0044 // Add readonly modifier
 
-        private int _maxHealth;
+        [NonSerialized] public int maxHealth;
         private int _score;
         private int _highScore;
         private int _level;
         private bool _isFading = false;
-        private PlayerController _player;
-        private EnemySpawner _spawner;
+        private bool _reset = false;
+        internal PlayerController player;
+        internal EnemySpawner spawner;
         private static GameManager s_manager;
 
         public static GameManager Instance
@@ -61,67 +62,45 @@ namespace Azimuth
 
         private void Awake()
         {
-            if (s_manager == null)
-            {
-                DontDestroyOnLoad(gameObject);
-                _player = FindObjectOfType<PlayerController>();
-                _spawner = FindObjectOfType<EnemySpawner>();
-            }
-            else
+            if (FindObjectsOfType<GameManager>().Length > 1)
             {
                 gameObject.SetActive(false);
                 Destroy(gameObject);
+                return;
             }
-        }
-
-        private void OnEnable()
-        {
-            ConnectEvents();
-        }
-
-        private void OnDisable()
-        {
-            DisconnectEvents();
-        }
-
-        
-        private void ConnectEvents()
-        {
+            DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += NewLevelLoaded;
-            _player.onPlayerDestroyed += FinishLevel;
-            _player.onHealthChanged += UpdateHealth;
-            _spawner.onEnemyDestroyed += AddToScore;
+            Init();
         }
 
-        private void DisconnectEvents()
+        private void OnDestroy()
         {
             SceneManager.sceneLoaded -= NewLevelLoaded;
-            _player.onPlayerDestroyed -= FinishLevel;
-            _player.onHealthChanged -= UpdateHealth;
-            _spawner.onEnemyDestroyed -= AddToScore;
+        }
+
+        private void Init()
+        {
+            player = FindObjectOfType<PlayerController>();
+            spawner = FindObjectOfType<EnemySpawner>();
         }
 
         private void NewLevelLoaded(Scene loaded, LoadSceneMode mode)
         {
             _levelDisplay.text = loaded.name;
+            _scoreDisplay.text = string.Format(ScoreFormat, _score);
+            _healthDisplay.value = 1f;
             _ = StartCoroutine(FadeIntoLevel());
         }
 
         private IEnumerator FadeIntoLevel()
         {
-            _isFading = !_isFading;
-            if (_fadeImage.color.a != 1f)
-            {
-                Color c = _fadeImage.color;
-                c.a = 1f;
-                _fadeImage.color = c;
-            }
-
-            float t, a = 0f;
-            _fadeImage.gameObject.SetActive(true);
+            _isFading = true;
             _levelDisplay.gameObject.SetActive(true);
+            _fadeImage.gameObject.SetActive(true);
 
-            while (true)
+            float a = 0f;
+            float t = 0f;
+            while (t < 1f)
             {
                 Color color = _fadeImage.color;
                 t = Mathf.InverseLerp(0f, _fadeTimer, a);
@@ -130,34 +109,22 @@ namespace Azimuth
 
                 _fadeImage.color = color;
 
-                if (t >= 1f)
-                {
-                    break;
-                }
-
                 a += Time.deltaTime;
                 yield return null;
             }
             _levelDisplay.gameObject.SetActive(false);
             _fadeImage.gameObject.SetActive(false);
             _isFading = false;
+            Debug.Assert(!_levelDisplay.gameObject.activeInHierarchy);
         }
 
         private IEnumerator FadeOutOfLevel()
         {
             _isFading = true;
-            s_manager.PlayState = GameState.Playing;
-            if (_fadeImage.color.a != 0f)
-            {
-                Color c = _fadeImage.color;
-                c.a = 0f;
-                _fadeImage.color = c;
-            }
-
-            float t, a = 0f;
             _fadeImage.gameObject.SetActive(true);
-
-            while (true)
+            float a = 0f;
+            float t = 0f;
+            while (t < 1f)
             {
                 Color color = _fadeImage.color;
                 t = Mathf.InverseLerp(0f, _fadeTimer, a);
@@ -165,28 +132,20 @@ namespace Azimuth
                 color.a = t;
 
                 _fadeImage.color = color;
-
-                if (t >= 1f)
-                {
-                    break;
-                }
-
                 a += Time.deltaTime;
                 yield return null;
             }
             _isFading = false;
-            _fadeImage.gameObject.SetActive(false);
         }
 
         public void FinishLevel(object sender, LevelFinishedEventArgs e)
         {
-            s_manager.PlayState = GameState.Unloading;
             _ = e.PlayerWon ? StartCoroutine(LevelWon()) : StartCoroutine(LevelLost());
         }
 
-        public void TriggerLevelFinish(bool winner)
+        public void FinishLevel(bool playerWon)
         {
-
+            _ = playerWon ? StartCoroutine(LevelWon()) : StartCoroutine(LevelLost());
         }
 
         private IEnumerator LevelWon()
@@ -199,19 +158,46 @@ namespace Azimuth
         private IEnumerator LevelLost()
         {
             yield return StartCoroutine(FadeOutOfLevel());
-            _level = SceneManager.sceneCountInBuildSettings - 1;
-            SceneManager.LoadScene(_level);
+            Debug.Log($"{nameof(FadeOutOfLevel)} has completed.");
+            ResetGame(false);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         public void AddToScore(object sender, EnemyDestroyedEventArgs e)
         {
+            if (!e.DestroyedByPlayer)
+                return;
             _score += e.Points;
+            _scoreDisplay.text = string.Format(ScoreFormat, _score);
+        }
+
+        public void AddToScore(int points)
+        {
+            _score += points;
             _scoreDisplay.text = string.Format(ScoreFormat, _score);
         }
 
         public void UpdateHealth(object sender, PlayerHealthEventArgs e)
         {
             _healthDisplay.value = e.HealthValue / e.MaxHealth;
+        }
+
+        public void UpdateHealth(PlayerHealthEventArgs e)
+        {
+            _healthDisplay.value = e.HealthValue / e.MaxHealth;
+        }
+
+        public void ResetGame(bool returnToMenu = false)
+        {
+            if (returnToMenu)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            _highScore = Mathf.Max(_score, _highScore);
+            _score = 0;
+            _level = 0;
+            _reset = true;
         }
     }
 }

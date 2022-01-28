@@ -6,8 +6,7 @@ namespace Azimuth
 {
     public class LaserShooter : MonoBehaviour
     {
-        public GameObject pooledLaser;
-        [SerializeField] private int _laserPoolAmount = 10;
+        public PoolCategory laserCategory;
         [SerializeField] private AudioClip[] _laserClips;
         [SerializeField] [Range(0f, 1f)] private float _laserVolume = 1f;
 
@@ -16,17 +15,15 @@ namespace Azimuth
 
         private void OnEnable()
         {
-            FindObjectOfType<ObjectPooler>()
-                .AddPool(new PooledObject(pooledLaser,
-                                          objectToPool: pooledLaser.tag));
+            _pooler = FindObjectOfType<ObjectPooler>();
         }
 
         public void ShootLaser()
         {
-            var laser = _pooler.GetObjectFromPool(pooledLaser);
+            var laser = _pooler.GetObjectFromPool(laserCategory);
             if (!laser)
             {
-                Debug.LogWarning($"No object with name {pooledLaser} found in {nameof(ObjectPooler)}.", gameObject);
+                Debug.LogWarning($"No object returned from pool {laserCategory}.", this);
                 return;
             }
             laser.transform.SetPositionAndRotation(transform.position, transform.rotation);

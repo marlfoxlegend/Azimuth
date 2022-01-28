@@ -10,25 +10,30 @@ namespace Azimuth
     public class EnemySpawner : MonoBehaviour
     {
         public event EventHandler<EnemyDestroyedEventArgs> onEnemyDestroyed;
+        public event EventHandler<LevelFinishedEventArgs> onSpawningFinished;
 
         [SerializeField] private List<Wave> _waves;
         [SerializeField] [Range(0, 20)] private int _loopCount = 1;
 
-        private readonly HashSet<Enemy> _enemies = new HashSet<Enemy>();
-        private bool _waveCompleted = false;
+        private readonly List<Enemy> _enemies = new List<Enemy>();
         private bool _spawningCompleted;
 
         private void Start()
         {
+            _spawningCompleted = false;
             _ = StartCoroutine(StartSpawning());
         }
 
         private void LateUpdate()
         {
-            var cleared = AllSpawnCleared();
-            if (cleared)
+            if (AllSpawnCleared())
             {
-                GameManager.Instance.TriggerLevelFinish(cleared);
+                GameManager.Instance.FinishLevel(true);
+                //var handler = onSpawningFinished;
+                //if (handler != null)
+                //{
+                //    handler(this, new LevelFinishedEventArgs(true));
+                //}
             }
         }
 
@@ -45,7 +50,6 @@ namespace Azimuth
         {
             foreach (Wave wave in _waves)
             {
-                _waveCompleted = false;
                 yield return new WaitForSeconds(wave.TimeBetweenWaveSpawn);
                 yield return StartCoroutine(SpawnWaveEnemies(wave));
             }
@@ -62,11 +66,11 @@ namespace Azimuth
                                         Quaternion.identity,
                                         transform);
                 enemy.GetComponent<EnemyPathing>().SetPath(path);
-                enemy.SetSprite(wave.Sprite).SetSpawner(this);
+                enemy.SetSpawner(this);
+                enemy.SetSprite(wave.Sprite);
                 _enemies.Add(enemy);
                 yield return new WaitForSeconds(wave.TimeBetweenEnemySpawn);
             }
-            _waveCompleted = true;
         }
 
         public void StopSpawning()
@@ -78,25 +82,22 @@ namespace Azimuth
 
         public void RemoveSpawn(Enemy enemy, bool isDestroyed)
         {
+            //var e = new EnemyDestroyedEventArgs(enemy.RewardPoints(), isDestroyed);
+            //var handler = onEnemyDestroyed;
+            //if (handler != null)
+            //{
+            //    handler(enemy, e);
+            //}
             _ = _enemies.Remove(enemy);
-            enemy.gameObject.SetActive(false);
-            var e = new EnemyDestroyedEventArgs(enemy.RewardPoints(), isDestroyed);
-            onEnemyDestroyed?.Invoke(enemy, e);
-        }
-
-        private IEnumerator CheckAllSpawnRemoved()
-        {
-            while (true)
+            if (isDestroyed)
             {
-                if (AllSpawnCleared())
-                {
-                    yield break;
-                }
+                GameManager.Instance.AddToScore(enemy.RewardPoints());
             }
         }
+
         public bool AllSpawnCleared()
         {
-            return _enemies.Count == 0 && _spawningCompleted;
+            return _spawningCompleted && _enemies.Count == 0;
         }
     }
 }
